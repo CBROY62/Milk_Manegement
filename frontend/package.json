@@ -3,10 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@stripe/react-stripe-js": "^5.4.1",
+    "@stripe/stripe-js": "^8.5.3",
+    "axios": "^1.6.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^7.10.1",
     "react-scripts": "5.0.1",
-    "axios": "^1.6.2"
+    "react-toastify": "^11.0.5"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -32,4 +36,3 @@
     ]
   }
 }
-

@@ -1,0 +1,153 @@
+.franchise-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.franchise-container h1 {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.franchise-intro {
+  text-align: center;
+  color: #666;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+.franchise-status-card,
+.franchise-info,
+.franchise-form-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.franchise-status-card h2,
+.franchise-form-card h2 {
+  margin-top: 0;
+  color: #333;
+}
+
+.franchise-details p {
+  margin: 1rem 0;
+  color: #666;
+}
+
+.franchise-details strong {
+  color: #333;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.status-badge.pending {
+  background: #ffc107;
+  color: #000;
+}
+
+.status-badge.approved,
+.status-badge.active {
+  background: #28a745;
+  color: white;
+}
+
+.status-badge.rejected {
+  background: #dc3545;
+  color: white;
+}
+
+.franchise-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 2rem 0;
+}
+
+.franchise-info li {
+  padding: 0.75rem 0;
+  color: #666;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.franchise-info li:before {
+  content: '✓ ';
+  color: #28a745;
+  font-weight: 700;
+  margin-right: 0.5rem;
+}
+
+.franchise-form-card .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.franchise-form-card label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.franchise-form-card input,
+.franchise-form-card textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.franchise-form-card input:focus,
+.franchise-form-card textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #5a6268;
+}
+
+.franchise-loading {
+  text-align: center;
+  padding: 4rem;
+  color: #666;
+}
+

@@ -73,11 +73,21 @@ milkDataSchema.index({ email: 1 }, { unique: true });
 
 const MilkData = mongoose.model('MilkData', milkDataSchema, 'Milk_data');
 
+// Import routes
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const productRoutes = require('./routes/products');
+const cartRoutes = require('./routes/cart');
+const orderRoutes = require('./routes/orders');
+const paymentRoutes = require('./routes/payments');
+const subscriptionRoutes = require('./routes/subscriptions');
+const franchiseRoutes = require('./routes/franchises');
+
 // Routes
 // Health check
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'Milk Management API is running',
+    message: 'White Craft Milk Management API is running',
     status: 'OK',
     database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
     timestamp: new Date().toISOString()
@@ -93,6 +103,16 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/franchises', franchiseRoutes);
 
 // Register new user
 app.post('/api/register', async (req, res) => {

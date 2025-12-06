@@ -1,0 +1,146 @@
+.subscriptions-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.subscriptions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.subscriptions-header h1 {
+  color: #333;
+}
+
+.subscription-form-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.subscription-form-card h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+.subscription-form-card .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.subscription-form-card label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.subscription-form-card select,
+.subscription-form-card input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.subscriptions-list h2 {
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.subscription-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+}
+
+.subscription-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.subscription-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.active {
+  background: #28a745;
+  color: white;
+}
+
+.status-badge.expired {
+  background: #6c757d;
+  color: white;
+}
+
+.status-badge.cancelled {
+  background: #dc3545;
+  color: white;
+}
+
+.subscription-details p {
+  margin: 0.75rem 0;
+  color: #666;
+}
+
+.subscription-details strong {
+  color: #333;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+  margin-top: 1rem;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+}
+
+.no-subscriptions,
+.subscriptions-loading {
+  text-align: center;
+  padding: 4rem;
+  color: #666;
+}
+
