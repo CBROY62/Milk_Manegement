@@ -1,0 +1,129 @@
+.payment-history-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.payment-history-container h1 {
+  margin-bottom: 30px;
+  color: #333;
+}
+
+.payment-history-loading,
+.payment-history-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+}
+
+.payment-history-empty h2 {
+  margin-bottom: 10px;
+  color: #666;
+}
+
+.payment-history-empty p {
+  margin-bottom: 20px;
+  color: #999;
+}
+
+.payment-history-list {
+  display: grid;
+  gap: 20px;
+}
+
+.payment-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+.payment-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.payment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.payment-header h3 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 1.2em;
+}
+
+.payment-date {
+  margin: 0;
+  color: #666;
+  font-size: 0.9em;
+}
+
+.payment-status {
+  padding: 6px 12px;
+  border-radius: 4px;
+  color: white;
+  font-size: 0.85em;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.payment-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.payment-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.detail-label {
+  font-weight: 500;
+  color: #666;
+}
+
+.detail-value {
+  color: #333;
+  font-weight: 600;
+}
+
+.detail-link {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.detail-link:hover {
+  text-decoration: underline;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: background-color 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+}

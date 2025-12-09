@@ -108,10 +108,26 @@ router.post('/add', authenticate, [
     await cart.save();
     await cart.populate('items.product');
 
+    // Update pricing based on user type (consistent with GET endpoint)
+    const itemsWithPricing = cart.items.map(item => {
+      const itemObj = item.toObject();
+      if (req.user.isB2B) {
+        itemObj.product.currentPrice = itemObj.product.priceB2B;
+        itemObj.product.pricingType = 'B2B';
+      } else {
+        itemObj.product.currentPrice = itemObj.product.priceB2C;
+        itemObj.product.pricingType = 'B2C';
+      }
+      return itemObj;
+    });
+
     res.json({
       success: true,
       message: 'Item added to cart',
-      data: cart
+      data: {
+        ...cart.toObject(),
+        items: itemsWithPricing
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -168,10 +184,26 @@ router.put('/update/:productId', authenticate, [
     await cart.save();
     await cart.populate('items.product');
 
+    // Update pricing based on user type (consistent with GET endpoint)
+    const itemsWithPricing = cart.items.map(item => {
+      const itemObj = item.toObject();
+      if (req.user.isB2B) {
+        itemObj.product.currentPrice = itemObj.product.priceB2B;
+        itemObj.product.pricingType = 'B2B';
+      } else {
+        itemObj.product.currentPrice = itemObj.product.priceB2C;
+        itemObj.product.pricingType = 'B2C';
+      }
+      return itemObj;
+    });
+
     res.json({
       success: true,
       message: 'Cart updated',
-      data: cart
+      data: {
+        ...cart.toObject(),
+        items: itemsWithPricing
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -202,10 +234,26 @@ router.delete('/remove/:productId', authenticate, async (req, res) => {
     await cart.save();
     await cart.populate('items.product');
 
+    // Update pricing based on user type (consistent with GET endpoint)
+    const itemsWithPricing = cart.items.map(item => {
+      const itemObj = item.toObject();
+      if (req.user.isB2B) {
+        itemObj.product.currentPrice = itemObj.product.priceB2B;
+        itemObj.product.pricingType = 'B2B';
+      } else {
+        itemObj.product.currentPrice = itemObj.product.priceB2C;
+        itemObj.product.pricingType = 'B2C';
+      }
+      return itemObj;
+    });
+
     res.json({
       success: true,
       message: 'Item removed from cart',
-      data: cart
+      data: {
+        ...cart.toObject(),
+        items: itemsWithPricing
+      }
     });
   } catch (error) {
     res.status(500).json({

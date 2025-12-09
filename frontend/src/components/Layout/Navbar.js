@@ -1,18 +1,36 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import './Layout.css';
 
 const Navbar = () => {
   const { isAuthenticated, user, logout } = useAuth();
-  const { getCartItemCount } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Hide navbar on authenticated pages (where sidebar is shown)
+  const publicRoutes = ['/login', '/signup', '/'];
+  const profileRoutes = ['/profile', '/profile/orders', '/profile/addresses', '/profile/pan-card', '/profile/gift-cards', '/profile/saved-upi', '/profile/saved-cards', '/profile/coupons', '/profile/reviews', '/profile/notifications', '/profile/wishlist'];
+  const shouldShowNavbar = (!isAuthenticated || publicRoutes.includes(location.pathname)) && !profileRoutes.includes(location.pathname);
+
+  // Get dashboard path based on user role
+  const getDashboardPath = () => {
+    if (user?.role === 'admin') return '/admin/dashboard';
+    if (user?.role === 'mediator') return '/mediator/dashboard';
+    if (user?.role === 'delivery_boy') return '/delivery/dashboard';
+    if (user?.isB2B) return '/b2b/dashboard';
+    return '/shop';
+  };
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
+
+  if (!shouldShowNavbar) {
+    return null;
+  }
 
   return (
     <nav className="navbar">
@@ -23,30 +41,10 @@ const Navbar = () => {
 
         <div className="navbar-menu">
           <Link to="/" className="nav-link">Home</Link>
-          <Link to="/shop" className="nav-link">Shop</Link>
           
           {isAuthenticated ? (
             <>
-              {user?.role === 'customer' && (
-                <>
-                  <Link to="/cart" className="nav-link">Cart ({getCartItemCount()})</Link>
-                  <Link to="/orders" className="nav-link">Orders</Link>
-                  <Link to="/subscriptions" className="nav-link">Subscriptions</Link>
-                </>
-              )}
-              {user?.role === 'admin' && (
-                <Link to="/admin/dashboard" className="nav-link">Admin</Link>
-              )}
-              {user?.role === 'mediator' && (
-                <Link to="/mediator/dashboard" className="nav-link">Dashboard</Link>
-              )}
-              {user?.role === 'delivery_boy' && (
-                <Link to="/delivery/dashboard" className="nav-link">Delivery</Link>
-              )}
-              {user?.isB2B && (
-                <Link to="/b2b/dashboard" className="nav-link">B2B</Link>
-              )}
-              <Link to="/franchise" className="nav-link">Franchise</Link>
+              <Link to={getDashboardPath()} className="nav-link">Dashboard</Link>
               <div className="nav-user">
                 <span>{user?.name}</span>
                 <button onClick={handleLogout} className="logout-btn">Logout</button>

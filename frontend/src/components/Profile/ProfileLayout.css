@@ -1,0 +1,19 @@
+.profile-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #fafafa;
+}
+
+.profile-content-area {
+  flex: 1;
+  margin-left: 280px;
+  padding: 0;
+  background-color: #fafafa;
+  min-height: 100vh;
+}
+
+@media (max-width: 768px) {
+  .profile-content-area {
+    margin-left: 0;
+  }
+}

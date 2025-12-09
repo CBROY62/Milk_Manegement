@@ -12,7 +12,23 @@ const router = express.Router();
 // Create order from cart
 router.post('/create', authenticate, async (req, res) => {
   try {
-    const { deliveryType, deliveryAddress, phone } = req.body;
+    const { deliveryType, deliveryAddress, phone, paymentMethod } = req.body;
+
+    // Validate required fields
+    if (deliveryType === 'home_delivery' && !deliveryAddress && !req.user.address) {
+      return res.status(400).json({
+        success: false,
+        message: 'Delivery address is required for home delivery'
+      });
+    }
+
+    const phoneNumber = phone || req.user.phone;
+    if (!phoneNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number is required'
+      });
+    }
 
     // Get user's cart
     const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
@@ -89,17 +105,28 @@ router.post('/create', authenticate, async (req, res) => {
     const deliveryCharge = deliveryType === 'home_delivery' ? 50 : 0;
     const total = subtotal + deliveryCharge;
 
+    // Determine initial order status based on payment method
+    const initialStatus = paymentMethod === 'cod' ? 'pending' : 'pending';
+    const paymentMethodValue = paymentMethod || 'stripe';
+
+    // Generate unique order number
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000);
+    const orderNumber = `WC${timestamp}${random}`;
+
     // Create order
     const order = new Order({
       user: req.user._id,
+      orderNumber: orderNumber,
       items: orderItems,
       deliveryType,
-      deliveryAddress: deliveryAddress || req.user.address,
-      phone: phone || req.user.phone,
+      deliveryAddress: deliveryAddress || req.user.address || '',
+      phone: phoneNumber,
       subtotal,
       deliveryCharge,
       total,
-      freeMilkAdded
+      freeMilkAdded,
+      status: initialStatus
     });
 
     await order.save();
@@ -116,8 +143,8 @@ router.post('/create', authenticate, async (req, res) => {
       user: req.user._id,
       order: order._id,
       amount: total,
-      paymentMethod: 'stripe',
-      status: 'pending'
+      paymentMethod: paymentMethodValue,
+      status: paymentMethodValue === 'cod' ? 'pending' : 'pending'
     });
     await payment.save();
 
@@ -139,6 +166,14 @@ router.post('/create', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Order creation error:', error);
+    // If it's a validation error, return 400 instead of 500
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        error: error.message
+      });
+    }
     res.status(500).json({
       success: false,
       message: 'Server error',

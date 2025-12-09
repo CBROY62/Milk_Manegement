@@ -1,7 +1,16 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import './Layout.css';
 
 const Footer = () => {
+  const location = useLocation();
+  
+  // Hide footer on profile pages
+  const profileRoutes = ['/profile', '/profile/orders', '/profile/addresses', '/profile/pan-card', '/profile/gift-cards', '/profile/saved-upi', '/profile/saved-cards', '/profile/coupons', '/profile/reviews', '/profile/notifications', '/profile/wishlist'];
+  if (profileRoutes.includes(location.pathname)) {
+    return null;
+  }
+  
   return (
     <footer className="footer">
       <div className="footer-container">

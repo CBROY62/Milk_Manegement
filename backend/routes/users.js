@@ -60,7 +60,8 @@ router.get('/:id', authenticate, async (req, res) => {
 router.put('/:id', authenticate, [
   body('name').optional().trim().notEmpty(),
   body('phone').optional().notEmpty(),
-  body('address').optional()
+  body('address').optional(),
+  body('gender').optional().isIn(['male', 'female', 'other'])
 ], async (req, res) => {
   try {
     // Users can only update their own profile unless they're admin
@@ -80,12 +81,13 @@ router.put('/:id', authenticate, [
       });
     }
 
-    const { name, phone, address } = req.body;
+    const { name, phone, address, gender } = req.body;
     const updateData = {};
 
     if (name) updateData.name = name;
     if (phone) updateData.phone = phone;
     if (address !== undefined) updateData.address = address;
+    if (gender !== undefined) updateData.gender = gender;
 
     const user = await User.findByIdAndUpdate(
       req.params.id,

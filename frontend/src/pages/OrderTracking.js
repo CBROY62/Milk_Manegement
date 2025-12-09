@@ -28,20 +28,41 @@ const OrderTracking = () => {
     }
   };
 
+  // Map backend statuses to frontend display stages
+  const getDisplayStage = (status) => {
+    if (!status) return 'ordered';
+    
+    // Map backend statuses to simplified stages
+    if (status === 'pending' || status === 'confirmed') {
+      return 'ordered';
+    } else if (status === 'processing' || status === 'out_for_delivery') {
+      return 'ongoing';
+    } else if (status === 'delivered') {
+      return 'delivered';
+    } else if (status === 'cancelled') {
+      return 'cancelled';
+    }
+    return 'ordered';
+  };
+
   const getStatusSteps = () => {
     const steps = [
-      { key: 'pending', label: 'Order Placed' },
-      { key: 'confirmed', label: 'Confirmed' },
-      { key: 'processing', label: 'Processing' },
-      { key: 'out_for_delivery', label: 'Out for Delivery' },
-      { key: 'delivered', label: 'Delivered' }
+      { key: 'ordered', label: 'Ordered' },
+      { key: 'ongoing', label: 'On Going' },
+      { key: 'delivered', label: 'Delivered Product' }
     ];
     return steps;
   };
 
   const getCurrentStepIndex = () => {
-    const statusOrder = ['pending', 'confirmed', 'processing', 'out_for_delivery', 'delivered'];
-    return statusOrder.indexOf(order?.status) || 0;
+    const displayStage = getDisplayStage(order?.status);
+    const statusOrder = ['ordered', 'ongoing', 'delivered'];
+    const index = statusOrder.indexOf(displayStage);
+    return index >= 0 ? index : 0;
+  };
+
+  const isCompleted = () => {
+    return order?.status === 'delivered';
   };
 
   if (loading) {
@@ -98,6 +119,19 @@ const OrderTracking = () => {
               </div>
             ))}
           </div>
+          {isCompleted() && (
+            <div className="completed-status" style={{
+              marginTop: '20px',
+              padding: '15px',
+              backgroundColor: '#d4edda',
+              border: '1px solid #c3e6cb',
+              borderRadius: '8px',
+              textAlign: 'center'
+            }}>
+              <h3 style={{ color: '#155724', margin: 0 }}>✓ Completed</h3>
+              <p style={{ color: '#155724', margin: '5px 0 0 0' }}>Your order has been successfully delivered!</p>
+            </div>
+          )}
         </div>
 
         <div className="order-items-card">

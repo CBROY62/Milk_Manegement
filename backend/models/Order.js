@@ -30,7 +30,7 @@ const orderSchema = new mongoose.Schema({
   orderNumber: {
     type: String,
     unique: true,
-    required: true
+    required: false
   },
   items: [orderItemSchema],
   deliveryType: {
@@ -85,8 +85,15 @@ const orderSchema = new mongoose.Schema({
 // Generate order number before saving
 orderSchema.pre('save', async function(next) {
   if (!this.orderNumber) {
-    const count = await mongoose.model('Order').countDocuments();
-    this.orderNumber = `WC${Date.now()}${count + 1}`;
+    try {
+      // Use a more reliable method to generate unique order number
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 1000);
+      this.orderNumber = `WC${timestamp}${random}`;
+    } catch (error) {
+      // Fallback if there's any error
+      this.orderNumber = `WC${Date.now()}${Math.floor(Math.random() * 10000)}`;
+    }
   }
   next();
 });

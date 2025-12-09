@@ -43,6 +43,12 @@ const Orders = () => {
     return <div className="orders-loading">Loading orders...</div>;
   }
 
+  // Calculate statistics
+  const totalOrders = orders.length;
+  const totalAmount = orders.reduce((sum, order) => sum + (order.total || 0), 0);
+  const deliveredOrders = orders.filter(order => order.status === 'delivered').length;
+  const pendingOrders = orders.filter(order => ['pending', 'confirmed', 'processing', 'out_for_delivery'].includes(order.status)).length;
+
   if (orders.length === 0) {
     return (
       <div className="orders-empty">
@@ -55,7 +61,27 @@ const Orders = () => {
 
   return (
     <div className="orders-container">
-      <h1>My Orders</h1>
+      <div className="orders-header">
+        <h1>My Orders</h1>
+        <div className="orders-statistics">
+          <div className="stat-card">
+            <div className="stat-value">{totalOrders}</div>
+            <div className="stat-label">Total Orders</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">₹{totalAmount.toFixed(2)}</div>
+            <div className="stat-label">Total Spent</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">{deliveredOrders}</div>
+            <div className="stat-label">Delivered</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">{pendingOrders}</div>
+            <div className="stat-label">In Progress</div>
+          </div>
+        </div>
+      </div>
       <div className="orders-list">
         {orders.map((order) => (
           <div key={order._id} className="order-card">

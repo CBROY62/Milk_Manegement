@@ -13,7 +13,8 @@ const ProductList = ({ onAddToCart }) => {
 
   useEffect(() => {
     fetchProducts();
-  }, [filter, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, user?.isB2B]);
 
   const fetchProducts = async () => {
     try {
@@ -23,13 +24,28 @@ const ProductList = ({ onAddToCart }) => {
       const params = { isB2B };
       if (type) params.type = type;
 
+      console.log('Fetching products with params:', params);
       const response = await api.get('/products', { params });
-      if (response.data.success) {
-        setProducts(response.data.data);
+      console.log('Products API response:', response.data);
+      
+      if (response.data && response.data.success) {
+        const productsData = response.data.data || [];
+        console.log('Products received:', productsData.length);
+        setProducts(productsData);
+        if (productsData.length === 0) {
+          console.log('No products found in database');
+        }
+      } else {
+        console.error('API response not successful:', response.data);
+        setProducts([]);
       }
     } catch (error) {
       console.error('Error fetching products:', error);
-      toast.error('Failed to load products');
+      console.error('Error details:', error.response?.data || error.message);
+      console.error('Error status:', error.response?.status);
+      console.error('Error config:', error.config?.url);
+      toast.error('Failed to load products. Please check if backend server is running on port 5000.');
+      setProducts([]);
     } finally {
       setLoading(false);
     }

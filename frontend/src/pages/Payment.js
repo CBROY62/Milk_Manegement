@@ -138,6 +138,34 @@ const Payment = () => {
     navigate('/orders');
   };
 
+  const handleCOD = async () => {
+    try {
+      setLoading(true);
+      // Delete the existing order if it was created
+      if (orderId) {
+        // Optionally cancel the existing order, or just create a new one with COD
+        // For simplicity, we'll create a new order with COD
+      }
+      
+      // Create order with COD
+      const response = await api.post('/orders/create', {
+        ...formData,
+        paymentMethod: 'cod'
+      });
+      
+      if (response.data.success) {
+        clearCart();
+        toast.success('Order placed successfully with Cash on Delivery!');
+        navigate(`/orders/${response.data.data.order._id}`);
+      }
+    } catch (error) {
+      console.error('COD order creation error:', error);
+      toast.error(error.response?.data?.message || 'Failed to place COD order');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading || !orderId) {
     return <div className="payment-loading">Creating order...</div>;
   }
@@ -146,6 +174,30 @@ const Payment = () => {
     <div className="payment-container">
       <h1>Payment</h1>
       <div className="payment-content">
+        <div className="cod-option" style={{ marginBottom: '20px', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
+          <h3>Prefer Cash on Delivery?</h3>
+          <p>Pay when you receive your order</p>
+          <button
+            onClick={handleCOD}
+            disabled={loading}
+            className="cod-button"
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold'
+            }}
+          >
+            {loading ? 'Processing...' : 'Pay with Cash on Delivery'}
+          </button>
+        </div>
+        <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+          <span style={{ padding: '0 10px', color: '#666' }}>OR</span>
+        </div>
         <Elements stripe={stripePromise}>
           <PaymentForm amount={total} orderId={orderId} onSuccess={handlePaymentSuccess} />
         </Elements>

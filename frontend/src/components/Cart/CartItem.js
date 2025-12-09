@@ -4,20 +4,29 @@ import './Cart.css';
 
 const CartItem = ({ item }) => {
   const { updateQuantity, removeFromCart } = useCart();
+  
+  if (!item || !item.product) {
+    return null;
+  }
+  
   const product = item.product;
+  const productId = product._id || product;
   const price = product.currentPrice || product.priceB2C || 0;
   const total = price * item.quantity;
 
   const handleQuantityChange = (e) => {
     const newQuantity = parseInt(e.target.value);
-    if (newQuantity > 0) {
-      updateQuantity(product._id, newQuantity);
+    if (newQuantity > 0 && !isNaN(newQuantity) && productId) {
+      updateQuantity(productId, newQuantity);
+    } else if (newQuantity <= 0) {
+      // Reset to 1 if invalid quantity entered
+      e.target.value = item.quantity;
     }
   };
 
   const handleRemove = () => {
-    if (window.confirm('Remove this item from cart?')) {
-      removeFromCart(product._id);
+    if (window.confirm('Remove this item from cart?') && productId) {
+      removeFromCart(productId);
     }
   };
 
