@@ -204,33 +204,25 @@ router.get('/my-orders', authenticate, async (req, res) => {
   }
 });
 
-// Get single order
-router.get('/:id', authenticate, async (req, res) => {
+// Get all orders (Admin, Mediator) - Must come before /:id route
+router.get('/', authenticate, checkRole('admin', 'mediator'), async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id)
+    const { status, deliveryBoy } = req.query;
+    const query = {};
+
+    if (status) query.status = status;
+    if (deliveryBoy) query.deliveryBoy = deliveryBoy;
+
+    const orders = await Order.find(query)
+      .populate('user', 'name email phone')
       .populate('items.product')
       .populate('deliveryBoy', 'name phone')
-      .populate('payment');
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found'
-      });
-    }
-
-    // Check if user owns the order or is admin/mediator/delivery boy
-    if (order.user.toString() !== req.user._id.toString() &&
-        !['admin', 'mediator', 'delivery_boy'].includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied'
-      });
-    }
+      .sort({ createdAt: -1 });
 
     res.json({
       success: true,
-      data: order
+      count: orders.length,
+      data: orders
     });
   } catch (error) {
     res.status(500).json({
@@ -241,7 +233,7 @@ router.get('/:id', authenticate, async (req, res) => {
   }
 });
 
-// Update order status (Admin, Mediator, Delivery Boy)
+// Update order status (Admin, Mediator, Delivery Boy) - Specific route before generic
 router.put('/:id/status', authenticate, checkRole('admin', 'mediator', 'delivery_boy'), async (req, res) => {
   try {
     const { status } = req.body;
@@ -281,7 +273,7 @@ router.put('/:id/status', authenticate, checkRole('admin', 'mediator', 'delivery
   }
 });
 
-// Assign delivery boy (Admin, Mediator)
+// Assign delivery boy (Admin, Mediator) - Specific route before generic
 router.put('/:id/assign-delivery', authenticate, checkRole('admin', 'mediator'), async (req, res) => {
   try {
     const { deliveryBoyId } = req.body;
@@ -313,25 +305,233 @@ router.put('/:id/assign-delivery', authenticate, checkRole('admin', 'mediator'),
   }
 });
 
-// Get all orders (Admin, Mediator)
-router.get('/', authenticate, checkRole('admin', 'mediator'), async (req, res) => {
+// Cancel order (User can cancel their own orders) - Specific route before generic
+router.put('/:id/cancel', authenticate, async (req, res) => {
   try {
-    const { status, deliveryBoy } = req.query;
-    const query = {};
+    const order = await Order.findById(req.params.id).populate('items.product');
 
-    if (status) query.status = status;
-    if (deliveryBoy) query.deliveryBoy = deliveryBoy;
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
 
-    const orders = await Order.find(query)
-      .populate('user', 'name email phone')
-      .populate('items.product')
-      .populate('deliveryBoy', 'name phone')
-      .sort({ createdAt: -1 });
+    // Check if user owns the order
+    if (order.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // Can't cancel delivered or already cancelled orders
+    if (order.status === 'delivered') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot cancel a delivered order'
+      });
+    }
+
+    if (order.status === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: 'Order is already cancelled'
+      });
+    }
+
+    // Restore product stock
+    for (const item of order.items) {
+      await Product.findByIdAndUpdate(item.product._id || item.product, {
+        $inc: { stock: item.quantity }
+      });
+    }
+
+    // Update order status
+    order.status = 'cancelled';
+    await order.save();
+
+    // Update payment status if payment exists
+    if (order.payment) {
+      await Payment.findByIdAndUpdate(order.payment, {
+        status: 'cancelled'
+      });
+    }
 
     res.json({
       success: true,
-      count: orders.length,
-      data: orders
+      message: 'Order cancelled successfully',
+      data: await Order.findById(order._id).populate('items.product')
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Cancel individual item from order - Specific route before generic
+router.put('/:id/cancel-item/:itemId', authenticate, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id).populate('items.product');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    // Check if user owns the order
+    if (order.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // Can't cancel items from delivered or cancelled orders
+    if (order.status === 'delivered' || order.status === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot cancel items from ${order.status} order`
+      });
+    }
+
+    // Find the item to cancel
+    const itemIndex = order.items.findIndex(
+      item => item._id.toString() === req.params.itemId
+    );
+
+    if (itemIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order item not found'
+      });
+    }
+
+    const item = order.items[itemIndex];
+
+    // Restore product stock
+    await Product.findByIdAndUpdate(item.product._id || item.product, {
+      $inc: { stock: item.quantity }
+    });
+
+    // Remove item from order
+    order.items.splice(itemIndex, 1);
+
+    // Recalculate totals
+    let subtotal = 0;
+    for (const orderItem of order.items) {
+      subtotal += orderItem.total;
+    }
+    order.subtotal = subtotal;
+    order.total = subtotal + order.deliveryCharge;
+
+    // If no items left, cancel the entire order
+    if (order.items.length === 0) {
+      order.status = 'cancelled';
+      if (order.payment) {
+        await Payment.findByIdAndUpdate(order.payment, {
+          status: 'cancelled'
+        });
+      }
+    }
+
+    await order.save();
+
+    res.json({
+      success: true,
+      message: 'Order item cancelled successfully',
+      data: await Order.findById(order._id).populate('items.product')
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Get single order - Generic route comes last
+router.get('/:id', authenticate, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate('items.product')
+      .populate('deliveryBoy', 'name phone')
+      .populate('payment');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    // Check if user owns the order or is admin/mediator/delivery boy
+    if (order.user.toString() !== req.user._id.toString() &&
+        !['admin', 'mediator', 'delivery_boy'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: order
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Delete order (Only cancelled orders can be deleted)
+router.delete('/:id', authenticate, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    // Check if user owns the order
+    if (order.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // Only allow deletion of cancelled orders
+    if (order.status !== 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only cancelled orders can be deleted'
+      });
+    }
+
+    // Delete payment if exists
+    if (order.payment) {
+      await Payment.findByIdAndDelete(order.payment);
+    }
+
+    // Delete order
+    await Order.findByIdAndDelete(req.params.id);
+
+    res.json({
+      success: true,
+      message: 'Order deleted successfully'
     });
   } catch (error) {
     res.status(500).json({

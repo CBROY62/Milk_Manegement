@@ -11,6 +11,17 @@ const productSchema = new mongoose.Schema({
     enum: ['cow_milk', 'buffalo_milk'],
     required: [true, 'Product type is required']
   },
+  variant: {
+    type: String,
+    enum: ['full_cream', 'standardized', 'toned', 'double_toned', 'skimmed', null],
+    default: null
+  },
+  fatContent: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: null
+  },
   description: {
     type: String,
     default: ''

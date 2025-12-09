@@ -79,9 +79,29 @@ const AdminDashboard = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h2 style={{ margin: 0 }}>Quick Actions</h2>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+        <div className="quick-actions-buttons" style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
           <Link to="/admin/products" className="btn btn-primary">Manage Products</Link>
           <Link to="/admin/users" className="btn btn-primary">Manage Users</Link>
+          <Link 
+            to="/admin/analytics" 
+            className="btn btn-analytics" 
+            style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              fontWeight: '600',
+              textDecoration: 'none',
+              boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>📊</span>
+            <span>Analytics</span>
+          </Link>
         </div>
       </div>
 

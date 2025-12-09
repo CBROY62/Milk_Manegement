@@ -8,6 +8,8 @@ const OrderTracking = () => {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     fetchOrder();
@@ -25,6 +27,46 @@ const OrderTracking = () => {
       toast.error('Failed to load order details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    if (!window.confirm('Are you sure you want to cancel this order?')) {
+      return;
+    }
+
+    try {
+      setCancelling(true);
+      const response = await api.put(`/orders/${id}/cancel`);
+      if (response.data.success) {
+        toast.success('Order cancelled successfully');
+        fetchOrder();
+      }
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      toast.error(error.response?.data?.message || 'Failed to cancel order');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleCancelItem = async (itemId) => {
+    if (!window.confirm('Are you sure you want to cancel this item?')) {
+      return;
+    }
+
+    try {
+      setCancelling(true);
+      const response = await api.put(`/orders/${id}/cancel-item/${itemId}`);
+      if (response.data.success) {
+        toast.success('Item cancelled successfully');
+        fetchOrder();
+      }
+    } catch (error) {
+      console.error('Error cancelling item:', error);
+      toast.error(error.response?.data?.message || 'Failed to cancel item');
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -63,6 +105,14 @@ const OrderTracking = () => {
 
   const isCompleted = () => {
     return order?.status === 'delivered';
+  };
+
+  const canCancel = () => {
+    return order && order.status !== 'delivered' && order.status !== 'cancelled';
+  };
+
+  const isCancelled = () => {
+    return order?.status === 'cancelled';
   };
 
   if (loading) {
@@ -132,19 +182,90 @@ const OrderTracking = () => {
               <p style={{ color: '#155724', margin: '5px 0 0 0' }}>Your order has been successfully delivered!</p>
             </div>
           )}
+          {isCancelled() && (
+            <div className="cancelled-status" style={{
+              marginTop: '20px',
+              padding: '15px',
+              backgroundColor: '#f8d7da',
+              border: '1px solid #f5c6cb',
+              borderRadius: '8px',
+              textAlign: 'center'
+            }}>
+              <h3 style={{ color: '#721c24', margin: 0 }}>✗ Cancelled</h3>
+              <p style={{ color: '#721c24', margin: '5px 0 0 0' }}>This order has been cancelled.</p>
+            </div>
+          )}
         </div>
 
         <div className="order-items-card">
           <h2>Order Items</h2>
           {order.items.map((item, index) => (
             <div key={index} className="tracking-item">
-              <span>{item.product?.name || 'Product'} x {item.quantity}</span>
-              <span>₹{item.total.toFixed(2)}</span>
+              <div className="tracking-item-content">
+                <span>{item.product?.name || 'Product'} x {item.quantity}</span>
+                <span>₹{item.total.toFixed(2)}</span>
+              </div>
+              {canCancel() && (
+                <button
+                  className="cancel-item-btn"
+                  onClick={() => handleCancelItem(item._id)}
+                  disabled={cancelling}
+                >
+                  Cancel Item
+                </button>
+              )}
             </div>
           ))}
           <div className="tracking-total">
             <span>Total: ₹{order.total.toFixed(2)}</span>
           </div>
+          {canCancel() && (
+            <div className="cancel-order-section">
+              <button
+                className="cancel-order-btn"
+                onClick={handleCancelOrder}
+                disabled={cancelling}
+              >
+                {cancelling ? 'Cancelling...' : 'Cancel Entire Order'}
+              </button>
+            </div>
+          )}
+          {isCancelled() && (
+            <div className="cancelled-badge">
+              <span>Order Cancelled</span>
+            </div>
+          )}
+        </div>
+
+        <div className="help-section-card">
+          <div className="help-header" onClick={() => setShowHelp(!showHelp)}>
+            <h2>Help & Support</h2>
+            <span className="help-toggle">{showHelp ? '−' : '+'}</span>
+          </div>
+          {showHelp && (
+            <div className="help-content">
+              <div className="help-item">
+                <h3>How to Track Your Order?</h3>
+                <p>You can track your order status in real-time using the status timeline above. The order goes through three stages: Ordered, On Going, and Delivered Product.</p>
+              </div>
+              <div className="help-item">
+                <h3>Can I Cancel My Order?</h3>
+                <p>Yes, you can cancel your order before it is delivered. You can cancel individual items or the entire order. Once an order is delivered, it cannot be cancelled.</p>
+              </div>
+              <div className="help-item">
+                <h3>What Happens When I Cancel?</h3>
+                <p>When you cancel an order or item, the product stock will be restored and your payment will be refunded according to our refund policy.</p>
+              </div>
+              <div className="help-item">
+                <h3>Delivery Time</h3>
+                <p>Orders are typically delivered within 24-48 hours. You will receive updates on your order status via email or SMS.</p>
+              </div>
+              <div className="help-item">
+                <h3>Need More Help?</h3>
+                <p>Contact our customer support team at support@milkmanagement.com or call us at +91-1234567890. We're available Monday-Saturday, 9 AM - 6 PM.</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

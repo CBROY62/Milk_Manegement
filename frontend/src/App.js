@@ -33,6 +33,7 @@ import AllNotifications from './pages/Profile/AllNotifications';
 import MyWishlist from './pages/Profile/MyWishlist';
 import Franchise from './pages/Franchise';
 import AdminDashboard from './components/Admin/AdminDashboard';
+import Analytics from './components/Admin/Analytics';
 import MediatorDashboard from './components/Mediator/MediatorDashboard';
 import DeliveryDashboard from './components/Delivery/DeliveryDashboard';
 import B2BDashboard from './components/B2B/B2BDashboard';
@@ -72,6 +73,7 @@ function App() {
               <Route path="/profile/wishlist" element={<ProtectedRoute><ProfileLayout><MyWishlist /></ProfileLayout></ProtectedRoute>} />
               <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout><AdminDashboard /></DashboardLayout></ProtectedRoute>} />
               <Route path="/admin/products" element={<DashboardLayout><AdminProducts /></DashboardLayout>} />
+              <Route path="/admin/analytics" element={<ProtectedRoute><DashboardLayout><Analytics /></DashboardLayout></ProtectedRoute>} />
               <Route path="/mediator/dashboard" element={<ProtectedRoute allowedRoles={['mediator']}><DashboardLayout><MediatorDashboard /></DashboardLayout></ProtectedRoute>} />
               <Route path="/delivery/dashboard" element={<ProtectedRoute allowedRoles={['delivery_boy']}><DashboardLayout><DeliveryDashboard /></DashboardLayout></ProtectedRoute>} />
               <Route path="/b2b/dashboard" element={<ProtectedRoute><DashboardLayout><B2BDashboard /></DashboardLayout></ProtectedRoute>} />

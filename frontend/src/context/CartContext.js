@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import api from '../utils/axios';
 import { useAuth } from './AuthContext';
 
@@ -12,13 +12,60 @@ export const useCart = () => {
   return context;
 };
 
+// Helper function to load cart from localStorage
+const loadCartFromStorage = () => {
+  try {
+    const storedCart = localStorage.getItem('localCart');
+    if (storedCart) {
+      return JSON.parse(storedCart);
+    }
+  } catch (error) {
+    console.error('Error loading cart from localStorage:', error);
+  }
+  return [];
+};
+
+// Helper function to save cart to localStorage
+const saveCartToStorage = (items) => {
+  try {
+    localStorage.setItem('localCart', JSON.stringify(items));
+  } catch (error) {
+    console.error('Error saving cart to localStorage:', error);
+  }
+};
+
 export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState([]);
+  // Initialize cart from localStorage on mount
+  const [cartItems, setCartItems] = useState(() => loadCartFromStorage());
   const [loading, setLoading] = useState(false);
   const { isAuthenticated } = useAuth();
+  const cartItemsRef = useRef([]);
+  const isFetchingRef = useRef(false);
+  const isInitialMountRef = useRef(true);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    cartItemsRef.current = cartItems;
+  }, [cartItems]);
+
+  // Save cart to localStorage whenever cartItems changes (except on initial mount)
+  useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
+    saveCartToStorage(cartItems);
+  }, [cartItems]);
 
   const fetchCart = useCallback(async () => {
-    const previousItems = [...cartItems];
+    // Prevent concurrent fetches
+    if (isFetchingRef.current) {
+      return cartItemsRef.current;
+    }
+
+    const previousItems = [...cartItemsRef.current];
+    isFetchingRef.current = true;
+    
     try {
       setLoading(true);
       const response = await api.get('/cart');
@@ -33,6 +80,8 @@ export const CartProvider = ({ children }) => {
             return previousItems;
           }
           setCartItems(items);
+          // Save to localStorage as backup
+          saveCartToStorage(items);
           return items;
         } else {
           console.warn('Invalid items array received, preserving previous state');
@@ -57,21 +106,31 @@ export const CartProvider = ({ children }) => {
       return previousItems;
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
-  }, [cartItems]);
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
+      // For authenticated users: Load from localStorage first, then sync with backend
+      const localCart = loadCartFromStorage();
+      if (localCart.length > 0) {
+        // Keep local cart visible while fetching from backend
+        setCartItems(localCart);
+      }
+      // Sync with backend
       fetchCart();
     } else {
-      setCartItems([]);
+      // For non-authenticated users: Load from localStorage
+      const localCart = loadCartFromStorage();
+      setCartItems(localCart);
     }
   }, [isAuthenticated, fetchCart]);
 
   const addToCart = async (product, quantity = 1) => {
     if (!isAuthenticated) {
       // Store in localStorage for non-authenticated users
-      const localCart = JSON.parse(localStorage.getItem('localCart') || '[]');
+      const localCart = loadCartFromStorage();
       const existingItem = localCart.find(item => item.product._id === product._id);
       
       if (existingItem) {
@@ -80,12 +139,14 @@ export const CartProvider = ({ children }) => {
         localCart.push({ product, quantity });
       }
       
-      localStorage.setItem('localCart', JSON.stringify(localCart));
       setCartItems(localCart);
+      saveCartToStorage(localCart);
       return;
     }
 
-    const previousItems = [...cartItems];
+    // Use ref to get current state without creating dependency
+    const previousItems = [...cartItemsRef.current];
+
     try {
       const response = await api.post('/cart/add', {
         productId: product._id,
@@ -97,6 +158,8 @@ export const CartProvider = ({ children }) => {
           // Only update if we got valid items
           if (response.data.data.items.length > 0) {
             setCartItems(response.data.data.items);
+            // Save to localStorage as backup
+            saveCartToStorage(response.data.data.items);
           } else if (previousItems.length > 0) {
             // If response has empty items but we had items before, preserve state
             console.warn('API returned empty cart after add, preserving previous state');
@@ -126,15 +189,15 @@ export const CartProvider = ({ children }) => {
 
   const updateQuantity = async (productId, quantity) => {
     if (!isAuthenticated) {
-      const localCart = JSON.parse(localStorage.getItem('localCart') || '[]');
+      const localCart = loadCartFromStorage();
       const item = localCart.find(item => item.product._id === productId);
       if (item) {
         if (quantity <= 0) {
           removeFromCart(productId);
         } else {
           item.quantity = quantity;
-          localStorage.setItem('localCart', JSON.stringify(localCart));
           setCartItems(localCart);
+          saveCartToStorage(localCart);
         }
       }
       return;
@@ -146,13 +209,14 @@ export const CartProvider = ({ children }) => {
       return;
     }
 
-    // Optimistic update - update local state immediately
-    const previousCartItems = [...cartItems];
+    // Use ref to get current state without creating dependency
+    const previousCartItems = [...cartItemsRef.current];
     if (previousCartItems.length === 0) {
       console.warn('Cannot update quantity: cart is empty');
       return;
     }
 
+    // Optimistic update - update local state immediately
     setCartItems(prevItems => {
       const updated = prevItems.map(item => {
         const itemProductId = item.product?._id || item.product;
@@ -170,6 +234,8 @@ export const CartProvider = ({ children }) => {
         // Use response data directly if available (backend already includes pricing)
         if (response.data.data && response.data.data.items && Array.isArray(response.data.data.items) && response.data.data.items.length > 0) {
           setCartItems(response.data.data.items);
+          // Save to localStorage as backup
+          saveCartToStorage(response.data.data.items);
         } else if (response.data.data && response.data.data.items && response.data.data.items.length === 0) {
           // If response has empty items array, revert to previous state
           console.warn('API returned empty cart, reverting to previous state');
@@ -177,20 +243,7 @@ export const CartProvider = ({ children }) => {
         } else {
           // Fallback to fetchCart if response structure is different
           try {
-            const fetchResponse = await api.get('/cart');
-            if (fetchResponse.data.success) {
-              const fetchedItems = fetchResponse.data.data?.items || [];
-              if (Array.isArray(fetchedItems) && fetchedItems.length > 0) {
-                setCartItems(fetchedItems);
-              } else if (previousCartItems.length > 0) {
-                // If fetched cart is empty but we had items, revert
-                console.warn('fetchCart returned empty, reverting to previous state');
-                setCartItems(previousCartItems);
-              }
-            } else {
-              // API call succeeded but response indicates failure, revert
-              setCartItems(previousCartItems);
-            }
+            await fetchCart();
           } catch (fetchError) {
             console.error('Error in fetchCart fallback:', fetchError);
             // Revert to previous state if fetchCart fails
@@ -212,15 +265,17 @@ export const CartProvider = ({ children }) => {
 
   const removeFromCart = async (productId) => {
     if (!isAuthenticated) {
-      const localCart = JSON.parse(localStorage.getItem('localCart') || '[]');
+      const localCart = loadCartFromStorage();
       const updatedCart = localCart.filter(item => item.product._id !== productId);
-      localStorage.setItem('localCart', JSON.stringify(updatedCart));
       setCartItems(updatedCart);
+      saveCartToStorage(updatedCart);
       return;
     }
 
+    // Use ref to get current state without creating dependency
+    const previousCartItems = [...cartItemsRef.current];
+    
     // Optimistic update - remove from local state immediately
-    const previousCartItems = [...cartItems];
     setCartItems(prevItems => prevItems.filter(item => item.product._id !== productId));
 
     try {
@@ -229,6 +284,8 @@ export const CartProvider = ({ children }) => {
         // Use response data directly if available (backend already includes pricing)
         if (response.data.data && response.data.data.items) {
           setCartItems(response.data.data.items);
+          // Save to localStorage as backup
+          saveCartToStorage(response.data.data.items);
         } else {
           // Fallback to fetchCart
           await fetchCart();
@@ -255,6 +312,8 @@ export const CartProvider = ({ children }) => {
       const response = await api.delete('/cart/clear');
       if (response.data.success) {
         setCartItems([]);
+        // Clear localStorage as well
+        localStorage.removeItem('localCart');
       }
     } catch (error) {
       console.error('Error clearing cart:', error);

@@ -175,10 +175,57 @@
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
+.quick-actions-buttons {
+  display: flex !important;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  visibility: visible !important;
+}
+
+.btn-analytics {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  padding: 12px 24px !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3) !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.btn-analytics:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.5) !important;
+  background: linear-gradient(135deg, #5568d3 0%, #6543a1 100%) !important;
+}
+
+.analytics-icon {
+  font-size: 1.2rem !important;
+}
+
 @media (max-width: 968px) {
   .order-row {
     grid-template-columns: 1fr;
     gap: 0.5rem;
+  }
+
+  .quick-actions-buttons {
+    flex-direction: column;
+  }
+
+  .quick-actions-buttons .btn {
+    width: 100%;
+    text-align: center;
   }
 }
 

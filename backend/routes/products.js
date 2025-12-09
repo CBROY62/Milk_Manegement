@@ -9,11 +9,15 @@ const router = express.Router();
 // Get all products (public - window shopping)
 router.get('/', async (req, res) => {
   try {
-    const { type, isB2B } = req.query;
+    const { type, isB2B, variant } = req.query;
     const query = { isActive: true };
 
     if (type && (type === 'cow_milk' || type === 'buffalo_milk')) {
       query.type = type;
+    }
+
+    if (variant && ['full_cream', 'standardized', 'toned', 'double_toned', 'skimmed'].includes(variant)) {
+      query.variant = variant;
     }
 
     const products = await Product.find(query).sort({ createdAt: -1 });
@@ -84,6 +88,8 @@ router.get('/:id', async (req, res) => {
 router.post('/', authenticate, checkRole('admin'), [
   body('name').trim().notEmpty().withMessage('Product name is required'),
   body('type').isIn(['cow_milk', 'buffalo_milk']).withMessage('Invalid product type'),
+  body('variant').optional().isIn(['full_cream', 'standardized', 'toned', 'double_toned', 'skimmed']).withMessage('Invalid product variant'),
+  body('fatContent').optional().isFloat({ min: 0, max: 100 }).withMessage('Fat content must be between 0 and 100'),
   body('priceB2C').isFloat({ min: 0 }).withMessage('B2C price must be a positive number'),
   body('priceB2B').isFloat({ min: 0 }).withMessage('B2B price must be a positive number')
 ], async (req, res) => {

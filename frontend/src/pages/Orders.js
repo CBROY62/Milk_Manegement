@@ -7,6 +7,8 @@ import './Orders.css';
 const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -24,6 +26,26 @@ const Orders = () => {
       toast.error('Failed to load orders');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteOrder = async (orderId) => {
+    if (!window.confirm('Are you sure you want to delete this cancelled order? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeleting(orderId);
+      const response = await api.delete(`/orders/${orderId}`);
+      if (response.data.success) {
+        toast.success('Order deleted successfully');
+        fetchOrders();
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete order');
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -115,12 +137,54 @@ const Orders = () => {
               <div className="order-total">
                 <span>Total: ₹{order.total.toFixed(2)}</span>
               </div>
-              <Link to={`/orders/${order._id}`} className="view-order-btn">
-                View Details
-              </Link>
+              <div className="order-actions">
+                <Link to={`/orders/${order._id}`} className="view-order-btn">
+                  View Details
+                </Link>
+                {order.status === 'cancelled' && (
+                  <button
+                    className="remove-order-btn"
+                    onClick={() => handleDeleteOrder(order._id)}
+                    disabled={deleting === order._id}
+                  >
+                    {deleting === order._id ? 'Removing...' : 'Remove Order'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="help-section-card">
+        <div className="help-header" onClick={() => setShowHelp(!showHelp)}>
+          <h2>Help & Support</h2>
+          <span className="help-toggle">{showHelp ? '−' : '+'}</span>
+        </div>
+        {showHelp && (
+          <div className="help-content">
+            <div className="help-item">
+              <h3>Order Management</h3>
+              <p>View all your orders, track their status, and manage cancellations from this page. Click "View Details" to see more information about a specific order.</p>
+            </div>
+            <div className="help-item">
+              <h3>Cancelling Orders</h3>
+              <p>You can cancel orders that haven't been delivered yet. Go to the order details page to cancel individual items or the entire order.</p>
+            </div>
+            <div className="help-item">
+              <h3>Removing Orders</h3>
+              <p>You can remove cancelled orders from your order history. This action is permanent and cannot be undone.</p>
+            </div>
+            <div className="help-item">
+              <h3>Order Status</h3>
+              <p>Orders can have different statuses: Pending, Confirmed, Processing, Out for Delivery, Delivered, or Cancelled. Check the status badge on each order card.</p>
+            </div>
+            <div className="help-item">
+              <h3>Need Assistance?</h3>
+              <p>If you have questions about your orders, contact our support team at support@milkmanagement.com or call +91-1234567890. We're here to help Monday-Saturday, 9 AM - 6 PM.</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

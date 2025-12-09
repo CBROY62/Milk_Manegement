@@ -11,6 +11,8 @@ const ProductManagement = () => {
   const [formData, setFormData] = useState({
     name: '',
     type: 'cow_milk',
+    variant: '',
+    fatContent: '',
     description: '',
     priceB2C: '',
     priceB2B: '',
@@ -52,7 +54,9 @@ const ProductManagement = () => {
         ...formData,
         priceB2C: parseFloat(formData.priceB2C),
         priceB2B: parseFloat(formData.priceB2B),
-        stock: parseInt(formData.stock)
+        stock: parseInt(formData.stock),
+        variant: formData.variant || null,
+        fatContent: formData.fatContent ? parseFloat(formData.fatContent) : null
       };
 
       if (editingProduct) {
@@ -82,6 +86,8 @@ const ProductManagement = () => {
     setFormData({
       name: '',
       type: 'cow_milk',
+      variant: '',
+      fatContent: '',
       description: '',
       priceB2C: '',
       priceB2B: '',
@@ -96,6 +102,8 @@ const ProductManagement = () => {
     setFormData({
       name: product.name,
       type: product.type,
+      variant: product.variant || '',
+      fatContent: product.fatContent || '',
       description: product.description || '',
       priceB2C: product.priceB2C,
       priceB2B: product.priceB2B,
@@ -262,6 +270,12 @@ const ProductManagement = () => {
                 </div>
                 <h4>{product.name}</h4>
                 <p className="product-type">{product.type === 'cow_milk' ? 'Cow Milk' : 'Buffalo Milk'}</p>
+                {product.variant && (
+                  <p className="product-variant">
+                    Variant: {product.variant.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    {product.fatContent && ` (${product.fatContent}% fat)`}
+                  </p>
+                )}
                 <div className="product-pricing">
                   <p>B2C: ₹{product.priceB2C} / {product.unit}</p>
                   <p>B2B: ₹{product.priceB2B} / {product.unit}</p>

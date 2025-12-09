@@ -13,7 +13,8 @@ import {
   FiUsers,
   FiPackage,
   FiHome,
-  FiLogOut
+  FiLogOut,
+  FiBarChart2
 } from 'react-icons/fi';
 import './Sidebar.css';
 
@@ -79,6 +80,13 @@ const Sidebar = ({ onStateChange }) => {
       icon: <FiLayout />,
       roles: ['customer', 'admin', 'mediator', 'delivery_boy'],
       show: true
+    },
+    {
+      path: '/admin/analytics',
+      label: 'Analytics',
+      icon: <FiBarChart2 />,
+      roles: ['customer', 'admin', 'mediator', 'delivery_boy'],
+      show: isAuthenticated
     },
     {
       path: '/shop',

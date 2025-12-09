@@ -119,6 +119,12 @@
   color: #667eea;
 }
 
+.order-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .view-order-btn {
   padding: 10px 20px;
   background: #667eea;
@@ -131,6 +137,97 @@
 
 .view-order-btn:hover {
   background: #5568d3;
+}
+
+.remove-order-btn {
+  padding: 10px 20px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.remove-order-btn:hover:not(:disabled) {
+  background: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.remove-order-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.help-section-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 2rem;
+}
+
+.help-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.help-header h2 {
+  margin: 0;
+  color: #333;
+}
+
+.help-toggle {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #667eea;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #f0f0f0;
+  transition: all 0.3s ease;
+}
+
+.help-header:hover .help-toggle {
+  background: #667eea;
+  color: white;
+}
+
+.help-content {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.help-item {
+  margin-bottom: 1.5rem;
+}
+
+.help-item:last-child {
+  margin-bottom: 0;
+}
+
+.help-item h3 {
+  margin: 0 0 0.5rem 0;
+  color: #667eea;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.help-item p {
+  margin: 0;
+  color: #666;
+  line-height: 1.6;
+  font-size: 0.95rem;
 }
 
 .orders-loading,
@@ -178,6 +275,22 @@
   .order-header {
     flex-direction: column;
     gap: 1rem;
+  }
+
+  .order-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .view-order-btn,
+  .remove-order-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .help-section-card {
+    padding: 1.5rem;
   }
 }
 
