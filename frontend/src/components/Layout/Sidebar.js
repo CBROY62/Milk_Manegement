@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -14,11 +14,12 @@ import {
   FiPackage,
   FiHome,
   FiLogOut,
-  FiBarChart2
+  FiBarChart2,
+  FiX
 } from 'react-icons/fi';
 import './Sidebar.css';
 
-const Sidebar = ({ onStateChange }) => {
+const Sidebar = ({ onStateChange, isMobileOpen = false, onMobileClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
@@ -28,8 +29,8 @@ const Sidebar = ({ onStateChange }) => {
   // State management for sidebar collapse/expand (hover only)
   const [isHovered, setIsHovered] = useState(false); // Hover state
   
-  // Sidebar is expanded only when hovered
-  const isExpanded = isHovered;
+  // Sidebar is expanded only when hovered (desktop) or when mobile menu is open
+  const isExpanded = isHovered || isMobileOpen;
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -140,7 +141,7 @@ const Sidebar = ({ onStateChange }) => {
     }
   ];
 
-  const adminMenuItems = [
+  const adminMenuItems = useMemo(() => [
     {
       path: '/admin/dashboard',
       label: 'Admin Dashboard',
@@ -149,7 +150,7 @@ const Sidebar = ({ onStateChange }) => {
     },
     {
       path: '/admin/users',
-      label: 'Manage Users',
+      label: 'User Management',
       icon: <FiUsers />,
       show: true
     },
@@ -167,7 +168,7 @@ const Sidebar = ({ onStateChange }) => {
     },
     {
       path: '/admin/subscriptions',
-      label: 'Subscriptions',
+      label: 'Subscription Management',
       icon: <FiStar />,
       show: true
     },
@@ -177,7 +178,13 @@ const Sidebar = ({ onStateChange }) => {
       icon: <FiStar />,
       show: true
     }
-  ];
+  ], []);
+
+  // Calculate isAdmin first, before any useEffects
+  const isAdmin = user?.role === 'admin';
+
+  // Filter admin menu items based on show property
+  const visibleAdminMenuItems = adminMenuItems.filter(item => item.show === true);
 
   // Filter main menu items based on user role and authentication
   const visibleMainMenuItems = mainMenuItems.filter(item => {
@@ -192,11 +199,37 @@ const Sidebar = ({ onStateChange }) => {
     index === self.findIndex(t => t.path === item.path)
   );
 
-  const isAdmin = user?.role === 'admin';
+  // Debug: Log user role and isAdmin status
+  useEffect(() => {
+    console.log('Sidebar Debug:', {
+      user: user,
+      userRole: user?.role,
+      isAdmin: isAdmin,
+      isAuthenticated: isAuthenticated
+    });
+  }, [user, isAdmin, isAuthenticated]);
+
+  // Debug: Log admin menu items
+  useEffect(() => {
+    console.log('Admin Menu Items Debug:', {
+      adminMenuItems: adminMenuItems,
+      visibleAdminMenuItems: visibleAdminMenuItems,
+      visibleAdminMenuItemsLength: visibleAdminMenuItems.length,
+      isAdmin: isAdmin,
+      userRole: user?.role
+    });
+  }, [adminMenuItems, visibleAdminMenuItems, isAdmin, user]);
+
+  // Handle menu item click on mobile - close sidebar
+  const handleMenuItemClick = () => {
+    if (isMobileOpen && onMobileClose) {
+      onMobileClose();
+    }
+  };
 
   return (
     <div 
-      className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'}`}
+      className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'} ${isMobileOpen ? 'open' : ''}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -211,6 +244,15 @@ const Sidebar = ({ onStateChange }) => {
           <h2 className="brand-title">White Craft</h2>
           <p className="brand-tagline">Where Every Mock Moves</p>
         </div>
+        {isMobileOpen && onMobileClose && (
+          <button 
+            className="sidebar-close-btn"
+            onClick={onMobileClose}
+            aria-label="Close menu"
+          >
+            <FiX />
+          </button>
+        )}
       </div>
 
       <div className="sidebar-content">
@@ -226,6 +268,7 @@ const Sidebar = ({ onStateChange }) => {
                 to={item.path}
                 className={`menu-item ${isActive(item.path) ? 'active' : ''}`}
                 title={isExpanded ? item.path : item.label}
+                onClick={handleMenuItemClick}
               >
                 <span className="menu-icon">
                   {item.icon}
@@ -242,19 +285,26 @@ const Sidebar = ({ onStateChange }) => {
           </nav>
         </div>
 
-        {isAdmin && (
+        {/* Admin section - show for admin users or all authenticated users for testing */}
+        {(isAdmin || (isAuthenticated && process.env.NODE_ENV === 'development')) && visibleAdminMenuItems.length > 0 && (
           <div className="menu-section">
             <div className="menu-section-header">
               <span className="section-title">ADMINISTRATION</span>
               <span className="admin-badge">Admin</span>
+              {!isAdmin && process.env.NODE_ENV === 'development' && (
+                <span style={{ fontSize: '10px', color: '#999', marginLeft: '8px' }}>
+                  (Dev Mode)
+                </span>
+              )}
             </div>
             <nav className="menu-nav">
-              {adminMenuItems.map((item) => (
+              {visibleAdminMenuItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
                   className={`menu-item ${isActive(item.path) ? 'active' : ''}`}
                   title={isExpanded ? item.path : item.label}
+                  onClick={handleMenuItemClick}
                 >
                   <span className="menu-icon">{item.icon}</span>
                   <span className="menu-label">{item.label}</span>
@@ -279,7 +329,15 @@ const Sidebar = ({ onStateChange }) => {
               <span className="user-role">{user?.role || 'Customer'}</span>
             </div>
           </div>
-          <button onClick={handleLogout} className="sidebar-logout-btn">
+          <button 
+            onClick={() => {
+              handleLogout();
+              if (isMobileOpen && onMobileClose) {
+                onMobileClose();
+              }
+            }} 
+            className="sidebar-logout-btn"
+          >
             <FiLogOut />
             <span className="logout-text">Logout</span>
           </button>

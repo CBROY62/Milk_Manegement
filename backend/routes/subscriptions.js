@@ -4,6 +4,7 @@ const Subscription = require('../models/Subscription');
 const Product = require('../models/Product');
 const Payment = require('../models/Payment');
 const { authenticate } = require('../middleware/auth');
+const { checkRole } = require('../middleware/roleCheck');
 
 const router = express.Router();
 
@@ -121,6 +122,29 @@ router.post('/create', authenticate, [
   }
 });
 
+// Get all subscriptions (Admin only)
+router.get('/all', authenticate, checkRole('admin'), async (req, res) => {
+  try {
+    const subscriptions = await Subscription.find()
+      .populate('user', 'name email phone')
+      .populate('product', 'name type')
+      .populate('payment')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: subscriptions.length,
+      data: subscriptions
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 // Get user's subscriptions
 router.get('/my-subscriptions', authenticate, async (req, res) => {
   try {
@@ -133,6 +157,46 @@ router.get('/my-subscriptions', authenticate, async (req, res) => {
       success: true,
       count: subscriptions.length,
       data: subscriptions
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Update subscription status (Admin only)
+router.put('/:id/status', authenticate, checkRole('admin'), async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    if (!['active', 'cancelled', 'expired'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status'
+      });
+    }
+
+    const subscription = await Subscription.findById(req.params.id);
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    subscription.status = status;
+    if (status === 'cancelled') {
+      subscription.autoRenew = false;
+    }
+    await subscription.save();
+
+    res.json({
+      success: true,
+      message: 'Subscription status updated',
+      data: subscription
     });
   } catch (error) {
     res.status(500).json({

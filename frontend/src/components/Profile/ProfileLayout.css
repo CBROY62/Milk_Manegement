@@ -2,6 +2,7 @@
   display: flex;
   min-height: 100vh;
   background-color: #fafafa;
+  position: relative;
 }
 
 .profile-content-area {
@@ -12,8 +13,73 @@
   min-height: 100vh;
 }
 
+/* Hamburger Menu Button */
+.profile-mobile-menu-toggle {
+  display: none;
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1001;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.profile-mobile-menu-toggle:hover {
+  background: #1565c0;
+  transform: scale(1.05);
+}
+
+.profile-mobile-menu-toggle:active {
+  transform: scale(0.95);
+}
+
+.profile-mobile-menu-toggle svg {
+  font-size: 24px;
+}
+
+/* Mobile Menu Overlay */
+.profile-mobile-menu-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: profileFadeIn 0.3s ease;
+  backdrop-filter: blur(2px);
+}
+
+@keyframes profileFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @media (max-width: 768px) {
+  .profile-mobile-menu-toggle {
+    display: flex;
+  }
+
+  .profile-mobile-menu-overlay {
+    display: block;
+  }
+
   .profile-content-area {
     margin-left: 0;
+    padding-top: 70px;
   }
 }

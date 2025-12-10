@@ -12,11 +12,12 @@ import {
   FiStar,
   FiBell,
   FiHeart,
-  FiChevronRight
+  FiChevronRight,
+  FiX
 } from 'react-icons/fi';
 import './ProfileSidebar.css';
 
-const ProfileSidebar = () => {
+const ProfileSidebar = ({ isMobileOpen = false, onMobileClose }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -52,8 +53,15 @@ const ProfileSidebar = () => {
     return location.pathname === path;
   };
 
+  // Handle menu item click on mobile - close sidebar
+  const handleMenuItemClick = () => {
+    if (isMobileOpen && onMobileClose) {
+      onMobileClose();
+    }
+  };
+
   return (
-    <div className="profile-sidebar">
+    <div className={`profile-sidebar ${isMobileOpen ? 'open' : ''}`}>
       <div className="profile-sidebar-header">
         <div className="profile-user-greeting">
           <div className="profile-avatar">
@@ -64,6 +72,15 @@ const ProfileSidebar = () => {
             <p className="user-name-text">{user?.name || 'User'}</p>
           </div>
         </div>
+        {isMobileOpen && onMobileClose && (
+          <button 
+            className="profile-sidebar-close-btn"
+            onClick={onMobileClose}
+            aria-label="Close menu"
+          >
+            <FiX />
+          </button>
+        )}
       </div>
 
       <div className="profile-sidebar-content">
@@ -73,6 +90,7 @@ const ProfileSidebar = () => {
             to="/orders"
             className="profile-nav-header-clickable"
             style={{ textDecoration: 'none', color: 'inherit' }}
+            onClick={handleMenuItemClick}
           >
             <div className="profile-nav-header-left">
               <FiPackage className="profile-section-icon" />
@@ -101,6 +119,7 @@ const ProfileSidebar = () => {
               <Link
                 to="/profile"
                 className={`profile-nav-item ${isActive('/profile') ? 'active' : ''}`}
+                onClick={handleMenuItemClick}
               >
                 <span className="profile-nav-icon">
                   <FiUser />
@@ -110,6 +129,7 @@ const ProfileSidebar = () => {
               <Link
                 to="/profile/addresses"
                 className={`profile-nav-item ${isActive('/profile/addresses') ? 'active' : ''}`}
+                onClick={handleMenuItemClick}
               >
                 <span className="profile-nav-icon">
                   <FiMapPin />
@@ -119,6 +139,7 @@ const ProfileSidebar = () => {
               <Link
                 to="/profile/pan-card"
                 className={`profile-nav-item ${isActive('/profile/pan-card') ? 'active' : ''}`}
+                onClick={handleMenuItemClick}
               >
                 <span className="profile-nav-icon">
                   <FiFileText />
@@ -148,6 +169,7 @@ const ProfileSidebar = () => {
               <Link
                 to="/profile/gift-cards"
                 className={`profile-nav-item ${isActive('/profile/gift-cards') ? 'active' : ''}`}
+                onClick={handleMenuItemClick}
               >
                 <span className="profile-nav-icon">
                   <FiTag />
@@ -158,6 +180,7 @@ const ProfileSidebar = () => {
               <Link
                 to="/profile/saved-upi"
                 className={`profile-nav-item ${isActive('/profile/saved-upi') ? 'active' : ''}`}
+                onClick={handleMenuItemClick}
               >
                 <span className="profile-nav-icon">
                   <FiCreditCard />
@@ -167,6 +190,7 @@ const ProfileSidebar = () => {
               <Link
                 to="/profile/saved-cards"
                 className={`profile-nav-item ${isActive('/profile/saved-cards') ? 'active' : ''}`}
+                onClick={handleMenuItemClick}
               >
                 <span className="profile-nav-icon">
                   <FiCreditCard />
@@ -196,6 +220,7 @@ const ProfileSidebar = () => {
               <Link
                 to="/profile/coupons"
                 className={`profile-nav-item ${isActive('/profile/coupons') ? 'active' : ''}`}
+                onClick={handleMenuItemClick}
               >
                 <span className="profile-nav-icon">
                   <FiTag />
@@ -205,6 +230,7 @@ const ProfileSidebar = () => {
               <Link
                 to="/profile/reviews"
                 className={`profile-nav-item ${isActive('/profile/reviews') ? 'active' : ''}`}
+                onClick={handleMenuItemClick}
               >
                 <span className="profile-nav-icon">
                   <FiStar />
@@ -214,6 +240,7 @@ const ProfileSidebar = () => {
               <Link
                 to="/profile/notifications"
                 className={`profile-nav-item ${isActive('/profile/notifications') ? 'active' : ''}`}
+                onClick={handleMenuItemClick}
               >
                 <span className="profile-nav-icon">
                   <FiBell />
@@ -223,6 +250,7 @@ const ProfileSidebar = () => {
               <Link
                 to="/profile/wishlist"
                 className={`profile-nav-item ${isActive('/profile/wishlist') ? 'active' : ''}`}
+                onClick={handleMenuItemClick}
               >
                 <span className="profile-nav-icon">
                   <FiHeart />
@@ -235,7 +263,15 @@ const ProfileSidebar = () => {
       </div>
 
       <div className="profile-sidebar-footer">
-        <button onClick={handleLogout} className="profile-logout-btn">
+        <button 
+          onClick={() => {
+            handleLogout();
+            if (isMobileOpen && onMobileClose) {
+              onMobileClose();
+            }
+          }} 
+          className="profile-logout-btn"
+        >
           <FiLogOut className="logout-icon" />
           <span className="logout-text">Logout</span>
         </button>
