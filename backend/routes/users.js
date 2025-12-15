@@ -81,13 +81,19 @@ router.put('/:id', authenticate, [
       });
     }
 
-    const { name, phone, address, gender } = req.body;
+    const { name, phone, address, gender, role, isB2B } = req.body;
     const updateData = {};
 
     if (name) updateData.name = name;
     if (phone) updateData.phone = phone;
     if (address !== undefined) updateData.address = address;
     if (gender !== undefined) updateData.gender = gender;
+    
+    // Admin can update role and isB2B
+    if (req.user.role === 'admin') {
+      if (role !== undefined) updateData.role = role;
+      if (isB2B !== undefined) updateData.isB2B = isB2B;
+    }
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
@@ -178,6 +184,39 @@ router.put('/:id/status', authenticate, checkRole('admin'), async (req, res) => 
       success: true,
       message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully`,
       data: user
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Delete user (Admin only)
+router.delete('/:id', authenticate, checkRole('admin'), async (req, res) => {
+  try {
+    // Prevent admin from deleting themselves
+    if (req.user._id.toString() === req.params.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot delete your own account'
+      });
+    }
+
+    const user = await User.findByIdAndDelete(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'User deleted successfully'
     });
   } catch (error) {
     res.status(500).json({

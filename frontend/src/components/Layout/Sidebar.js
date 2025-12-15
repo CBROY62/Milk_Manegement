@@ -86,7 +86,7 @@ const Sidebar = ({ onStateChange, isMobileOpen = false, onMobileClose }) => {
       path: '/admin/analytics',
       label: 'Analytics',
       icon: <FiBarChart2 />,
-      roles: ['customer', 'admin', 'mediator', 'delivery_boy'],
+      roles: ['admin'],
       show: isAuthenticated
     },
     {
@@ -180,11 +180,25 @@ const Sidebar = ({ onStateChange, isMobileOpen = false, onMobileClose }) => {
     }
   ], []);
 
-  // Calculate isAdmin first, before any useEffects
-  const isAdmin = user?.role === 'admin';
+  // Calculate isAdmin - check if user exists and role is admin
+  const isAdmin = isAuthenticated && user && user.role === 'admin';
 
   // Filter admin menu items based on show property
   const visibleAdminMenuItems = adminMenuItems.filter(item => item.show === true);
+
+  // Debug: Log admin section visibility
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('Admin Section Debug:', {
+        isAuthenticated,
+        user: user,
+        userRole: user?.role,
+        isAdmin: user?.role === 'admin',
+        visibleAdminMenuItemsCount: visibleAdminMenuItems.length,
+        shouldShow: isAuthenticated && (user?.role === 'admin')
+      });
+    }
+  }, [isAuthenticated, user, visibleAdminMenuItems.length]);
 
   // Filter main menu items based on user role and authentication
   const visibleMainMenuItems = mainMenuItems.filter(item => {
@@ -198,27 +212,6 @@ const Sidebar = ({ onStateChange, isMobileOpen = false, onMobileClose }) => {
   const uniqueMainMenuItems = visibleMainMenuItems.filter((item, index, self) =>
     index === self.findIndex(t => t.path === item.path)
   );
-
-  // Debug: Log user role and isAdmin status
-  useEffect(() => {
-    console.log('Sidebar Debug:', {
-      user: user,
-      userRole: user?.role,
-      isAdmin: isAdmin,
-      isAuthenticated: isAuthenticated
-    });
-  }, [user, isAdmin, isAuthenticated]);
-
-  // Debug: Log admin menu items
-  useEffect(() => {
-    console.log('Admin Menu Items Debug:', {
-      adminMenuItems: adminMenuItems,
-      visibleAdminMenuItems: visibleAdminMenuItems,
-      visibleAdminMenuItemsLength: visibleAdminMenuItems.length,
-      isAdmin: isAdmin,
-      userRole: user?.role
-    });
-  }, [adminMenuItems, visibleAdminMenuItems, isAdmin, user]);
 
   // Handle menu item click on mobile - close sidebar
   const handleMenuItemClick = () => {
@@ -285,13 +278,13 @@ const Sidebar = ({ onStateChange, isMobileOpen = false, onMobileClose }) => {
           </nav>
         </div>
 
-        {/* Admin section - show for admin users or all authenticated users for testing */}
-        {(isAdmin || (isAuthenticated && process.env.NODE_ENV === 'development')) && visibleAdminMenuItems.length > 0 && (
+        {/* Admin section - show only for admin users (or all users in dev mode for testing) */}
+        {isAuthenticated && visibleAdminMenuItems.length > 0 && (user?.role === 'admin' || process.env.NODE_ENV === 'development') && (
           <div className="menu-section">
             <div className="menu-section-header">
               <span className="section-title">ADMINISTRATION</span>
               <span className="admin-badge">Admin</span>
-              {!isAdmin && process.env.NODE_ENV === 'development' && (
+              {process.env.NODE_ENV === 'development' && user?.role !== 'admin' && (
                 <span style={{ fontSize: '10px', color: '#999', marginLeft: '8px' }}>
                   (Dev Mode)
                 </span>

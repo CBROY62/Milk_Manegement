@@ -21,9 +21,21 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
 
+    console.log('AuthContext Initialization:', {
+      hasToken: !!token,
+      hasSavedUser: !!savedUser
+    });
+
     if (token && savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const parsedUser = JSON.parse(savedUser);
+        console.log('Parsed User from localStorage:', {
+          id: parsedUser._id,
+          email: parsedUser.email,
+          role: parsedUser.role,
+          fullUser: parsedUser
+        });
+        setUser(parsedUser);
         setIsAuthenticated(true);
         // Verify token is still valid
         verifyToken();
@@ -32,6 +44,7 @@ export const AuthProvider = ({ children }) => {
         logout();
       }
     } else {
+      console.log('No token or saved user found');
       setLoading(false);
     }
   }, []);
@@ -40,14 +53,33 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.get('/auth/me');
       if (response.data.success) {
-        setUser(response.data.data);
+        const userData = response.data.data;
+        console.log('Token verified - User data from API:', {
+          id: userData._id,
+          email: userData.email,
+          role: userData.role,
+          fullUser: userData
+        });
+        
+        // Ensure role is present
+        if (!userData.role) {
+          console.warn('User data from API does not have role property:', userData);
+        }
+        
+        setUser(userData);
         setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(response.data.data));
+        localStorage.setItem('user', JSON.stringify(userData));
       } else {
+        console.error('Token verification failed - API returned success: false');
         logout();
       }
     } catch (error) {
       console.error('Token verification failed:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       logout();
     } finally {
       setLoading(false);
@@ -59,6 +91,19 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/login', { email, password });
       if (response.data.success) {
         const { user, token } = response.data.data;
+        
+        console.log('Login successful - User data:', {
+          id: user._id,
+          email: user.email,
+          role: user.role,
+          fullUser: user
+        });
+        
+        // Ensure role is present
+        if (!user.role) {
+          console.warn('User data from login does not have role property:', user);
+        }
+        
         setUser(user);
         setIsAuthenticated(true);
         localStorage.setItem('token', token);
@@ -67,6 +112,7 @@ export const AuthProvider = ({ children }) => {
       }
       return { success: false, message: response.data.message };
     } catch (error) {
+      console.error('Login error:', error);
       return {
         success: false,
         message: error.response?.data?.message || 'Login failed. Please try again.'
@@ -102,9 +148,36 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUser = (updatedUser) => {
+    console.log('Updating user:', {
+      id: updatedUser._id,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      fullUser: updatedUser
+    });
+    
+    // Ensure role is preserved
+    if (!updatedUser.role) {
+      console.warn('Updated user data does not have role property:', updatedUser);
+    }
+    
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };
+
+  // Debug: Log user state changes
+  useEffect(() => {
+    if (user) {
+      console.log('AuthContext User State:', {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        isAuthenticated,
+        hasRole: !!user.role
+      });
+    } else {
+      console.log('AuthContext User State: No user');
+    }
+  }, [user, isAuthenticated]);
 
   const value = {
     user,

@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Subscription = require('../models/Subscription');
+const SubscriptionPlan = require('../models/SubscriptionPlan');
 const Product = require('../models/Product');
 const Payment = require('../models/Payment');
 const { authenticate } = require('../middleware/auth');
@@ -8,19 +9,172 @@ const { checkRole } = require('../middleware/roleCheck');
 
 const router = express.Router();
 
-// Get subscription plans
+// Default plans (fallback)
+const defaultPlans = [
+  { type: '7_days', duration: 7, label: '7 Days', isDefault: true },
+  { type: '15_days', duration: 15, label: '15 Days', isDefault: true },
+  { type: '30_days', duration: 30, label: '30 Days (Monthly)', isDefault: true },
+  { type: '3_months', duration: 90, label: '3 Months', isDefault: true }
+];
+
+// Get subscription plans (public)
 router.get('/plans', async (req, res) => {
   try {
-    const plans = [
-      { type: '7_days', duration: 7, label: '7 Days' },
-      { type: '15_days', duration: 15, label: '15 Days' },
-      { type: '30_days', duration: 30, label: '30 Days (Monthly)' },
-      { type: '3_months', duration: 90, label: '3 Months' }
-    ];
+    // Try to get plans from database
+    const dbPlans = await SubscriptionPlan.find({ isActive: true }).sort({ duration: 1 });
+    
+    // Merge with default plans if no custom plans exist
+    let plans = [];
+    if (dbPlans.length > 0) {
+      plans = dbPlans.map(plan => ({
+        _id: plan._id,
+        type: plan.type,
+        duration: plan.duration,
+        label: plan.label,
+        description: plan.description,
+        price: plan.price,
+        discountPercent: plan.discountPercent,
+        features: plan.features,
+        isDefault: plan.isDefault
+      }));
+    } else {
+      // Use default plans if no custom plans
+      plans = defaultPlans;
+    }
 
     res.json({
       success: true,
       data: plans
+    });
+  } catch (error) {
+    // Fallback to default plans on error
+    res.json({
+      success: true,
+      data: defaultPlans
+    });
+  }
+});
+
+// Get all subscription plans (Admin only - includes inactive)
+router.get('/plans/all', authenticate, checkRole('admin'), async (req, res) => {
+  try {
+    const plans = await SubscriptionPlan.find().sort({ duration: 1 });
+    
+    res.json({
+      success: true,
+      count: plans.length,
+      data: plans
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Create subscription plan (Admin only)
+router.post('/plans', authenticate, checkRole('admin'), [
+  body('name').trim().notEmpty().withMessage('Plan name is required'),
+  body('type').trim().notEmpty().withMessage('Plan type is required'),
+  body('duration').isInt({ min: 1 }).withMessage('Duration must be at least 1 day'),
+  body('label').trim().notEmpty().withMessage('Plan label is required'),
+  body('price').optional().isFloat({ min: 0 }).withMessage('Price must be non-negative'),
+  body('discountPercent').optional().isFloat({ min: 0, max: 100 }).withMessage('Discount must be between 0 and 100')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const plan = new SubscriptionPlan(req.body);
+    await plan.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Subscription plan created successfully',
+      data: plan
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Plan type already exists'
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Update subscription plan (Admin only)
+router.put('/plans/:id', authenticate, checkRole('admin'), [
+  body('name').optional().trim().notEmpty().withMessage('Plan name cannot be empty'),
+  body('duration').optional().isInt({ min: 1 }).withMessage('Duration must be at least 1 day'),
+  body('price').optional().isFloat({ min: 0 }).withMessage('Price must be non-negative'),
+  body('discountPercent').optional().isFloat({ min: 0, max: 100 }).withMessage('Discount must be between 0 and 100')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const plan = await SubscriptionPlan.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!plan) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription plan not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Subscription plan updated successfully',
+      data: plan
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Delete subscription plan (Admin only)
+router.delete('/plans/:id', authenticate, checkRole('admin'), async (req, res) => {
+  try {
+    const plan = await SubscriptionPlan.findByIdAndDelete(req.params.id);
+
+    if (!plan) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription plan not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Subscription plan deleted successfully'
     });
   } catch (error) {
     res.status(500).json({

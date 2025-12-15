@@ -8,6 +8,14 @@ const SubscriptionManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [selectedSubscriptions, setSelectedSubscriptions] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
+  const [analytics, setAnalytics] = useState({
+    totalRevenue: 0,
+    activeCount: 0,
+    cancelledCount: 0,
+    expiredCount: 0
+  });
 
   useEffect(() => {
     fetchSubscriptions();
@@ -16,15 +24,22 @@ const SubscriptionManagement = () => {
   const fetchSubscriptions = async () => {
     try {
       setLoading(true);
-      // Note: This endpoint might need to be created in backend for admin to get all subscriptions
       const response = await api.get('/subscriptions/all');
       if (response.data.success) {
-        setSubscriptions(response.data.data);
+        const subs = response.data.data || [];
+        setSubscriptions(subs);
+        
+        // Calculate analytics
+        const analyticsData = {
+          totalRevenue: subs.reduce((sum, sub) => sum + (sub.price || 0), 0),
+          activeCount: subs.filter(s => s.status === 'active').length,
+          cancelledCount: subs.filter(s => s.status === 'cancelled').length,
+          expiredCount: subs.filter(s => s.status === 'expired').length
+        };
+        setAnalytics(analyticsData);
       }
     } catch (error) {
-      // If endpoint doesn't exist, try alternative approach
       console.error('Error fetching subscriptions:', error);
-      // For now, we'll show empty state or use a different endpoint
       toast.error('Failed to load subscriptions');
     } finally {
       setLoading(false);
@@ -74,6 +89,89 @@ const SubscriptionManagement = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedSubscriptions(filteredSubscriptions.map(s => s._id));
+      setSelectAll(true);
+    } else {
+      setSelectedSubscriptions([]);
+      setSelectAll(false);
+    }
+  };
+
+  const handleSelectSubscription = (subId) => {
+    if (selectedSubscriptions.includes(subId)) {
+      setSelectedSubscriptions(selectedSubscriptions.filter(id => id !== subId));
+      setSelectAll(false);
+    } else {
+      setSelectedSubscriptions([...selectedSubscriptions, subId]);
+      if (selectedSubscriptions.length + 1 === filteredSubscriptions.length) {
+        setSelectAll(true);
+      }
+    }
+  };
+
+  const handleBulkAction = async (action) => {
+    if (selectedSubscriptions.length === 0) {
+      toast.error('Please select at least one subscription');
+      return;
+    }
+
+    const actionText = action === 'cancel' ? 'cancel' : action === 'activate' ? 'activate' : 'pause';
+    if (!window.confirm(`Are you sure you want to ${actionText} ${selectedSubscriptions.length} subscription(s)?`)) {
+      return;
+    }
+
+    try {
+      if (action === 'cancel') {
+        await Promise.all(selectedSubscriptions.map(subId => 
+          api.put(`/subscriptions/${subId}/status`, { status: 'cancelled' })
+        ));
+        toast.success(`${selectedSubscriptions.length} subscription(s) cancelled successfully`);
+      } else if (action === 'activate') {
+        await Promise.all(selectedSubscriptions.map(subId => 
+          api.put(`/subscriptions/${subId}/status`, { status: 'active' })
+        ));
+        toast.success(`${selectedSubscriptions.length} subscription(s) activated successfully`);
+      }
+      setSelectedSubscriptions([]);
+      setSelectAll(false);
+      fetchSubscriptions();
+    } catch (error) {
+      console.error(`Error ${actionText}ing subscriptions:`, error);
+      toast.error(`Failed to ${actionText} subscriptions`);
+    }
+  };
+
+  const handleExport = () => {
+    const csvData = [
+      ['User Name', 'User Email', 'Product', 'Plan Type', 'Quantity', 'Status', 'Start Date', 'End Date', 'Price'],
+      ...filteredSubscriptions.map(sub => [
+        sub.user?.name || 'N/A',
+        sub.user?.email || 'N/A',
+        sub.product?.name || 'N/A',
+        sub.planType || 'N/A',
+        sub.quantity || 0,
+        sub.status || 'N/A',
+        sub.startDate ? new Date(sub.startDate).toLocaleDateString() : 'N/A',
+        sub.endDate ? new Date(sub.endDate).toLocaleDateString() : 'N/A',
+        sub.price || 0
+      ])
+    ];
+
+    const csvContent = csvData.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `subscriptions_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Subscriptions exported successfully');
+  };
+
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case 'active':
@@ -102,8 +200,28 @@ const SubscriptionManagement = () => {
       <div className="subscription-management-header">
         <h1>Subscription Management</h1>
         <div className="subscription-stats">
-          <span>Total Subscriptions: {subscriptions.length}</span>
-          <span>Active: {subscriptions.filter(s => s.status === 'active').length}</span>
+          <span>Total: {subscriptions.length}</span>
+          <span>Active: {analytics.activeCount}</span>
+          <span>Revenue: ₹{analytics.totalRevenue.toFixed(2)}</span>
+        </div>
+      </div>
+
+      <div className="subscription-analytics">
+        <div className="analytics-card">
+          <h3>Total Revenue</h3>
+          <p className="analytics-value">₹{analytics.totalRevenue.toFixed(2)}</p>
+        </div>
+        <div className="analytics-card">
+          <h3>Active Subscriptions</h3>
+          <p className="analytics-value">{analytics.activeCount}</p>
+        </div>
+        <div className="analytics-card">
+          <h3>Cancelled</h3>
+          <p className="analytics-value">{analytics.cancelledCount}</p>
+        </div>
+        <div className="analytics-card">
+          <h3>Expired</h3>
+          <p className="analytics-value">{analytics.expiredCount}</p>
         </div>
       </div>
 
@@ -132,10 +250,41 @@ const SubscriptionManagement = () => {
         </div>
       </div>
 
+      {selectedSubscriptions.length > 0 && (
+        <div className="bulk-actions-bar">
+          <span>{selectedSubscriptions.length} subscription(s) selected</span>
+          <div className="bulk-actions-buttons">
+            <button onClick={() => handleBulkAction('activate')} className="btn-bulk-activate">
+              Activate Selected
+            </button>
+            <button onClick={() => handleBulkAction('cancel')} className="btn-bulk-cancel">
+              Cancel Selected
+            </button>
+            <button onClick={() => { setSelectedSubscriptions([]); setSelectAll(false); }} className="btn-clear-selection">
+              Clear Selection
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="subscription-actions-bar">
+        <button onClick={handleExport} className="btn-export">
+          Export to CSV
+        </button>
+      </div>
+
       <div className="subscriptions-table-container">
         <table className="subscriptions-table">
           <thead>
             <tr>
+              <th>
+                <input
+                  type="checkbox"
+                  checked={selectAll}
+                  onChange={handleSelectAll}
+                  className="select-checkbox"
+                />
+              </th>
               <th>User</th>
               <th>Product</th>
               <th>Plan Type</th>
@@ -149,11 +298,19 @@ const SubscriptionManagement = () => {
           <tbody>
             {filteredSubscriptions.length === 0 ? (
               <tr>
-                <td colSpan="8" className="no-data">No subscriptions found</td>
+                <td colSpan="9" className="no-data">No subscriptions found</td>
               </tr>
             ) : (
               filteredSubscriptions.map((subscription) => (
                 <tr key={subscription._id}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={selectedSubscriptions.includes(subscription._id)}
+                      onChange={() => handleSelectSubscription(subscription._id)}
+                      className="select-checkbox"
+                    />
+                  </td>
                   <td>
                     <div className="user-info">
                       <div className="user-name">{subscription.user?.name || 'N/A'}</div>

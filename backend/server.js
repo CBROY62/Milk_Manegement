@@ -83,6 +83,7 @@ const paymentRoutes = require('./routes/payments');
 const subscriptionRoutes = require('./routes/subscriptions');
 const franchiseRoutes = require('./routes/franchises');
 const analyticsRoutes = require('./routes/analytics');
+const questionRoutes = require('./routes/questions');
 
 // Routes
 // Health check
@@ -115,6 +116,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/franchises', franchiseRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/questions', questionRoutes);
 
 // Register new user
 app.post('/api/register', async (req, res) => {

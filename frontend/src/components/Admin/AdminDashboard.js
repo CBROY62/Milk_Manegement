@@ -9,7 +9,10 @@ const AdminDashboard = () => {
     totalUsers: 0,
     totalOrders: 0,
     totalRevenue: 0,
-    totalProducts: 0
+    totalProducts: 0,
+    activeSubscriptions: 0,
+    pendingOrders: 0,
+    totalQuestions: 0
   });
   const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,24 +25,36 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       // Fetch stats and recent orders
-      const [usersRes, ordersRes, productsRes] = await Promise.all([
-        api.get('/users'),
-        api.get('/orders'),
-        api.get('/products')
+      const [usersRes, ordersRes, productsRes, subscriptionsRes, questionsRes] = await Promise.all([
+        api.get('/users').catch(() => ({ data: { success: false } })),
+        api.get('/orders').catch(() => ({ data: { success: false } })),
+        api.get('/products').catch(() => ({ data: { success: false } })),
+        api.get('/subscriptions/all').catch(() => ({ data: { success: false } })),
+        api.get('/questions').catch(() => ({ data: { success: false } }))
       ]);
 
       if (usersRes.data.success) {
-        setStats(prev => ({ ...prev, totalUsers: usersRes.data.count }));
+        setStats(prev => ({ ...prev, totalUsers: usersRes.data.count || usersRes.data.data?.length || 0 }));
       }
       if (ordersRes.data.success) {
-        setStats(prev => ({ ...prev, totalOrders: ordersRes.data.count }));
-        setRecentOrders(ordersRes.data.data.slice(0, 5));
+        const orders = ordersRes.data.data || [];
+        setStats(prev => ({ ...prev, totalOrders: ordersRes.data.count || orders.length }));
+        setRecentOrders(orders.slice(0, 5));
         // Calculate revenue
-        const revenue = ordersRes.data.data.reduce((sum, order) => sum + order.total, 0);
-        setStats(prev => ({ ...prev, totalRevenue: revenue }));
+        const revenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
+        const pending = orders.filter(order => order.status === 'pending').length;
+        setStats(prev => ({ ...prev, totalRevenue: revenue, pendingOrders: pending }));
       }
       if (productsRes.data.success) {
-        setStats(prev => ({ ...prev, totalProducts: productsRes.data.count }));
+        setStats(prev => ({ ...prev, totalProducts: productsRes.data.count || productsRes.data.data?.length || 0 }));
+      }
+      if (subscriptionsRes.data.success) {
+        const subscriptions = subscriptionsRes.data.data || [];
+        const active = subscriptions.filter(sub => sub.status === 'active').length;
+        setStats(prev => ({ ...prev, activeSubscriptions: active }));
+      }
+      if (questionsRes.data.success) {
+        setStats(prev => ({ ...prev, totalQuestions: questionsRes.data.count || questionsRes.data.data?.length || 0 }));
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -54,7 +69,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="dashboard-container">
+      <div className="dashboard-container">
       <h1>Admin Dashboard</h1>
       <div className="stats-grid">
         <div className="stat-card">
@@ -64,6 +79,9 @@ const AdminDashboard = () => {
         <div className="stat-card">
           <h3>Total Orders</h3>
           <p className="stat-value">{stats.totalOrders}</p>
+          {stats.pendingOrders > 0 && (
+            <p className="stat-subtext">{stats.pendingOrders} pending</p>
+          )}
         </div>
         <div className="stat-card">
           <h3>Total Revenue</h3>
@@ -73,21 +91,33 @@ const AdminDashboard = () => {
           <h3>Total Products</h3>
           <p className="stat-value">{stats.totalProducts}</p>
         </div>
+        <div className="stat-card">
+          <h3>Active Subscriptions</h3>
+          <p className="stat-value">{stats.activeSubscriptions}</p>
+        </div>
+        <div className="stat-card">
+          <h3>Total Questions</h3>
+          <p className="stat-value">{stats.totalQuestions}</p>
+        </div>
       </div>
 
       <div className="dashboard-section">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h2 style={{ margin: 0 }}>Quick Actions</h2>
         </div>
-        <div className="quick-actions-buttons" style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+        <div className="quick-actions-buttons" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
           <Link to="/admin/products" className="btn btn-primary">Manage Products</Link>
           <Link to="/admin/users" className="btn btn-primary">Manage Users</Link>
+          <Link to="/admin/subscriptions" className="btn btn-primary">Subscriptions</Link>
+          <Link to="/admin/subscription-plans" className="btn btn-primary">Subscription Plans</Link>
+          <Link to="/admin/questions" className="btn btn-primary">Questions</Link>
           <Link 
             to="/admin/analytics" 
             className="btn btn-analytics" 
             style={{ 
               display: 'inline-flex', 
               alignItems: 'center', 
+              justifyContent: 'center',
               gap: '8px',
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
