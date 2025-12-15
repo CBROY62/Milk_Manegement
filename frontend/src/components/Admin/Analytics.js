@@ -36,7 +36,12 @@ const Analytics = () => {
   };
 
   if (loading) {
-    return <div className="analytics-loading">Loading analytics...</div>;
+    return (
+      <div className="analytics-loading">
+        <div className="spinner"></div>
+        <div className="loading-text">Loading analytics...</div>
+      </div>
+    );
   }
 
   if (!analyticsData) {

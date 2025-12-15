@@ -175,7 +175,10 @@ const SubscriptionPlans = () => {
   if (loading) {
     return (
       <div className="subscription-plans-container">
-        <div className="loading-spinner">Loading subscription plans...</div>
+        <div className="loading-spinner">
+          <div className="spinner"></div>
+          <div className="loading-text">Loading subscription plans...</div>
+        </div>
       </div>
     );
   }

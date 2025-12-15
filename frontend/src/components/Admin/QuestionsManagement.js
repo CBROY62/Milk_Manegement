@@ -235,7 +235,10 @@ const QuestionsManagement = () => {
   if (loading) {
     return (
       <div className="questions-management-container">
-        <div className="loading-spinner">Loading questions...</div>
+        <div className="loading-spinner">
+          <div className="spinner"></div>
+          <div className="loading-text">Loading questions...</div>
+        </div>
       </div>
     );
   }

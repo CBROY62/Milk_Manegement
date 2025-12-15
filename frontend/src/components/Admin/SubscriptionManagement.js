@@ -190,7 +190,10 @@ const SubscriptionManagement = () => {
   if (loading) {
     return (
       <div className="subscription-management-container">
-        <div className="loading-spinner">Loading subscriptions...</div>
+        <div className="loading-spinner">
+          <div className="spinner"></div>
+          <div className="loading-text">Loading subscriptions...</div>
+        </div>
       </div>
     );
   }

@@ -250,7 +250,10 @@ const UserManagement = () => {
   if (loading) {
     return (
       <div className="user-management-container">
-        <div className="loading-spinner">Loading users...</div>
+        <div className="loading-spinner">
+          <div className="spinner"></div>
+          <div className="loading-text">Loading users...</div>
+        </div>
       </div>
     );
   }

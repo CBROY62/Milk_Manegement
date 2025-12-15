@@ -4,6 +4,15 @@
   margin: 0 auto;
   background: #f5f7fa;
   min-height: 100vh;
+  border-top: none !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+
+.analytics-container::before,
+.analytics-container::after {
+  display: none !important;
+  content: none !important;
 }
 
 .analytics-header {
@@ -35,12 +44,76 @@
   transform: translateY(-2px);
 }
 
-.analytics-loading,
+.analytics-loading {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  min-height: 400px !important;
+  gap: 16px !important;
+  padding: 4rem !important;
+  width: 100% !important;
+  position: relative !important;
+  transform: none !important;
+  transform-style: preserve-3d !important;
+  perspective: none !important;
+  border-top: none !important;
+  border-radius: 0 !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  overflow: visible !important;
+}
+
+.analytics-loading::before,
+.analytics-loading::after {
+  display: none !important;
+  content: none !important;
+}
+
+.analytics-loading .spinner {
+  width: 40px !important;
+  height: 40px !important;
+  border: 4px solid #e0e0e0 !important;
+  border-top-color: #1976d2 !important;
+  border-right-color: #e0e0e0 !important;
+  border-bottom-color: #e0e0e0 !important;
+  border-left-color: #e0e0e0 !important;
+  border-radius: 50% !important;
+  animation: analytics-spin 1s linear infinite !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform-origin: center center !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+}
+
+.analytics-loading .loading-text {
+  font-size: 1.2rem !important;
+  color: #666 !important;
+  font-weight: 500 !important;
+  display: block !important;
+  visibility: visible !important;
+  transform: none !important;
+  rotate: 0deg !important;
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  line-height: normal !important;
+  direction: ltr !important;
+}
+
 .analytics-error {
   text-align: center;
   padding: 4rem;
   font-size: 1.2rem;
   color: #666;
+}
+
+@keyframes analytics-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Metrics Grid */

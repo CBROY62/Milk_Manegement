@@ -83,13 +83,6 @@ const Sidebar = ({ onStateChange, isMobileOpen = false, onMobileClose }) => {
       show: true
     },
     {
-      path: '/admin/analytics',
-      label: 'Analytics',
-      icon: <FiBarChart2 />,
-      roles: ['admin'],
-      show: isAuthenticated
-    },
-    {
       path: '/shop',
       label: 'Shop',
       icon: <FiShoppingBag />,
@@ -176,6 +169,12 @@ const Sidebar = ({ onStateChange, isMobileOpen = false, onMobileClose }) => {
       path: '/admin/subscription-plans',
       label: 'Subscription Plans',
       icon: <FiStar />,
+      show: true
+    },
+    {
+      path: '/admin/analytics',
+      label: 'Analytics',
+      icon: <FiBarChart2 />,
       show: true
     }
   ], []);
@@ -278,17 +277,12 @@ const Sidebar = ({ onStateChange, isMobileOpen = false, onMobileClose }) => {
           </nav>
         </div>
 
-        {/* Admin section - show only for admin users (or all users in dev mode for testing) */}
-        {isAuthenticated && visibleAdminMenuItems.length > 0 && (user?.role === 'admin' || process.env.NODE_ENV === 'development') && (
+        {/* Admin section - show only for admin users */}
+        {isAuthenticated && visibleAdminMenuItems.length > 0 && user?.role === 'admin' && (
           <div className="menu-section">
             <div className="menu-section-header">
               <span className="section-title">ADMINISTRATION</span>
               <span className="admin-badge">Admin</span>
-              {process.env.NODE_ENV === 'development' && user?.role !== 'admin' && (
-                <span style={{ fontSize: '10px', color: '#999', marginLeft: '8px' }}>
-                  (Dev Mode)
-                </span>
-              )}
             </div>
             <nav className="menu-nav">
               {visibleAdminMenuItems.map((item) => (
