@@ -16,6 +16,7 @@ const UserManagement = () => {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -23,6 +24,16 @@ const UserManagement = () => {
     role: 'customer',
     isB2B: false
   });
+  const [createFormData, setCreateFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    address: '',
+    role: 'customer',
+    isB2B: false
+  });
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -65,6 +76,66 @@ const UserManagement = () => {
       name: '',
       email: '',
       phone: '',
+      role: 'customer',
+      isB2B: false
+    });
+  };
+
+  const handleCreateChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setCreateFormData({
+      ...createFormData,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!createFormData.name || !createFormData.email || !createFormData.password || !createFormData.phone) {
+      toast.error('Please fill all required fields');
+      return;
+    }
+
+    if (createFormData.password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const response = await api.post('/users', createFormData);
+      if (response.data.success) {
+        toast.success('User created successfully');
+        setShowCreateModal(false);
+        setCreateFormData({
+          name: '',
+          email: '',
+          password: '',
+          phone: '',
+          address: '',
+          role: 'customer',
+          isB2B: false
+        });
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast.error(error.response?.data?.message || 'Failed to create user');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+    setCreateFormData({
+      name: '',
+      email: '',
+      password: '',
+      phone: '',
+      address: '',
       role: 'customer',
       isB2B: false
     });
@@ -344,10 +415,129 @@ const UserManagement = () => {
       )}
 
       <div className="user-actions-bar">
+        <button onClick={() => setShowCreateModal(true)} className="btn-create">
+          Create New User
+        </button>
         <button onClick={handleExport} className="btn-export">
           Export to CSV
         </button>
       </div>
+
+      {/* Create User Modal */}
+      {showCreateModal && (
+        <div className="modal-overlay" onClick={handleCloseCreateModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Create New User</h2>
+              <button className="modal-close" onClick={handleCloseCreateModal}>×</button>
+            </div>
+            <form onSubmit={handleCreateUser} className="create-user-form">
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="create-name">Name *</label>
+                  <input
+                    type="text"
+                    id="create-name"
+                    name="name"
+                    value={createFormData.name}
+                    onChange={handleCreateChange}
+                    required
+                    placeholder="Enter full name"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="create-email">Email *</label>
+                  <input
+                    type="email"
+                    id="create-email"
+                    name="email"
+                    value={createFormData.email}
+                    onChange={handleCreateChange}
+                    required
+                    placeholder="Enter email address"
+                  />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="create-password">Password *</label>
+                  <input
+                    type="password"
+                    id="create-password"
+                    name="password"
+                    value={createFormData.password}
+                    onChange={handleCreateChange}
+                    required
+                    minLength={6}
+                    placeholder="Minimum 6 characters"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="create-phone">Phone *</label>
+                  <input
+                    type="text"
+                    id="create-phone"
+                    name="phone"
+                    value={createFormData.phone}
+                    onChange={handleCreateChange}
+                    required
+                    placeholder="Enter phone number"
+                  />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="create-role">Role *</label>
+                  <select
+                    id="create-role"
+                    name="role"
+                    value={createFormData.role}
+                    onChange={handleCreateChange}
+                    required
+                  >
+                    <option value="customer">Customer</option>
+                    <option value="delivery_boy">Delivery Boy</option>
+                    <option value="mediator">Mediator</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="create-address">Address</label>
+                  <input
+                    type="text"
+                    id="create-address"
+                    name="address"
+                    value={createFormData.address}
+                    onChange={handleCreateChange}
+                    placeholder="Enter address (optional)"
+                  />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group checkbox-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="isB2B"
+                      checked={createFormData.isB2B}
+                      onChange={handleCreateChange}
+                    />
+                    <span>B2B Customer</span>
+                  </label>
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button type="button" onClick={handleCloseCreateModal} className="btn-cancel">
+                  Cancel
+                </button>
+                <button type="submit" className="btn-submit" disabled={creating}>
+                  {creating ? 'Creating...' : 'Create User'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className="users-table-container">
         <table className="users-table">

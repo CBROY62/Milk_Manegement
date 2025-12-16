@@ -1,0 +1,153 @@
+.delivery-order-tracking {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.tracking-title {
+  margin: 0 0 1.5rem 0;
+  color: #2d3748;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.progress-bar-container {
+  position: relative;
+  width: 100%;
+  padding: 2rem 0;
+}
+
+.progress-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #e0e0e0;
+  transform: translateY(-50%);
+  z-index: 0;
+}
+
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+
+.step-circle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e0e0e0;
+  border: 2px solid #d0d0d0;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.step-circle.active {
+  background: #2196f3;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.2);
+  transform: scale(1.1);
+}
+
+.step-circle.completed {
+  background: #2196f3;
+  border-color: #1976d2;
+}
+
+.step-circle.inactive {
+  background: #e0e0e0;
+  border-color: #d0d0d0;
+}
+
+.step-number {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #666;
+  transition: color 0.3s ease;
+}
+
+.step-circle.active .step-number,
+.step-circle.completed .step-number {
+  color: white;
+}
+
+.step-circle.inactive .step-number {
+  color: #999;
+}
+
+.step-label {
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+  line-height: 1.3;
+  min-height: 2.6em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-label.active {
+  color: #2196f3;
+  font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .delivery-order-tracking {
+    padding: 1rem;
+  }
+
+  .progress-bar-container {
+    padding: 1.5rem 0;
+  }
+
+  .step-circle {
+    width: 40px;
+    height: 40px;
+  }
+
+  .step-number {
+    font-size: 1rem;
+  }
+
+  .step-label {
+    font-size: 0.8rem;
+    min-height: 2.4em;
+  }
+}
+
+@media (max-width: 480px) {
+  .step-circle {
+    width: 35px;
+    height: 35px;
+  }
+
+  .step-number {
+    font-size: 0.9rem;
+  }
+
+  .step-label {
+    font-size: 0.75rem;
+  }
+}
+

@@ -24,6 +24,72 @@ router.get('/', authenticate, checkRole('admin'), async (req, res) => {
   }
 });
 
+// Create new user (Admin only)
+router.post('/', authenticate, checkRole('admin'), [
+  body('name').trim().notEmpty().withMessage('Name is required'),
+  body('email').isEmail().withMessage('Please enter a valid email'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('phone').notEmpty().withMessage('Phone is required'),
+  body('role').optional().isIn(['admin', 'mediator', 'customer', 'delivery_boy']).withMessage('Invalid role'),
+  body('address').optional(),
+  body('isB2B').optional().isBoolean()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { name, email, password, phone, address, role, isB2B } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email already registered'
+      });
+    }
+
+    // Create new user
+    const user = new User({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password,
+      phone: phone.trim(),
+      address: address || '',
+      role: role || 'customer',
+      isB2B: isB2B || false,
+      isActive: true
+    });
+
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      data: user.toJSON()
+    });
+  } catch (error) {
+    console.error('User creation error:', error);
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email already registered'
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 // Get user by ID
 router.get('/:id', authenticate, async (req, res) => {
   try {

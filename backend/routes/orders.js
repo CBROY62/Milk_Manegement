@@ -204,9 +204,142 @@ router.get('/my-orders', authenticate, async (req, res) => {
   }
 });
 
-// Get all orders (Admin, Mediator) - Must come before /:id route
-router.get('/', authenticate, checkRole('admin', 'mediator'), async (req, res) => {
+// Get delivery boy's assigned orders
+router.get('/my-deliveries', authenticate, checkRole('delivery_boy'), async (req, res) => {
   try {
+    const orders = await Order.find({ deliveryBoy: req.user._id })
+      .populate('user', 'name email phone')
+      .populate('items.product')
+      .populate('deliveryBoy', 'name phone')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: orders.length,
+      data: orders
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Get available orders for delivery (unassigned orders)
+router.get('/available-for-delivery', authenticate, checkRole('delivery_boy'), async (req, res) => {
+  try {
+    const orders = await Order.find({
+      deliveryBoy: null,
+      status: { $in: ['pending', 'confirmed', 'processing'] },
+      deliveryType: 'home_delivery'
+    })
+      .populate('user', 'name email phone')
+      .populate('items.product')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: orders.length,
+      data: orders
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Take/Accept order by delivery boy
+router.put('/:id/take', authenticate, checkRole('delivery_boy'), async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    // Check if order is already assigned
+    if (order.deliveryBoy && order.deliveryBoy.toString() !== req.user._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order is already assigned to another delivery boy'
+      });
+    }
+
+    // Check if order is for home delivery
+    if (order.deliveryType !== 'home_delivery') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only home delivery orders can be taken'
+      });
+    }
+
+    // Assign order to delivery boy and update status
+    order.deliveryBoy = req.user._id;
+    if (order.status === 'pending' || order.status === 'confirmed') {
+      order.status = 'processing';
+    }
+    await order.save();
+
+    const populatedOrder = await Order.findById(order._id)
+      .populate('user', 'name email phone')
+      .populate('items.product')
+      .populate('deliveryBoy', 'name phone');
+
+    res.json({
+      success: true,
+      message: 'Order taken successfully',
+      data: populatedOrder
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Get all orders (Admin, Mediator) or delivery boy's own orders - Must come before /:id route
+router.get('/', authenticate, async (req, res) => {
+  try {
+    // Check if user is admin or mediator
+    const isAdminOrMediator = ['admin', 'mediator'].includes(req.user.role);
+    
+    // If delivery boy, only allow querying their own orders
+    if (req.user.role === 'delivery_boy') {
+      const query = { deliveryBoy: req.user._id };
+      const { status } = req.query;
+      if (status) query.status = status;
+
+      const orders = await Order.find(query)
+        .populate('user', 'name email phone')
+        .populate('items.product')
+        .populate('deliveryBoy', 'name phone')
+        .sort({ createdAt: -1 });
+
+      return res.json({
+        success: true,
+        count: orders.length,
+        data: orders
+      });
+    }
+
+    // For admin and mediator, allow full access
+    if (!isAdminOrMediator) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Insufficient permissions.'
+      });
+    }
+
     const { status, deliveryBoy } = req.query;
     const query = {};
 

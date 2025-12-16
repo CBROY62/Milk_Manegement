@@ -10,6 +10,7 @@ const Login = () => {
     password: ''
   });
   const [loading, setLoading] = useState(false);
+  const [isDeliveryBoyMode, setIsDeliveryBoyMode] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -51,7 +52,20 @@ const Login = () => {
       <div className="auth-card">
         <div className="auth-header">
           <h1>White Craft</h1>
-          <p>Login to your account</p>
+          <p>{isDeliveryBoyMode ? 'Delivery Boy Login' : 'Login to your account'}</p>
+        </div>
+
+        <div className="login-mode-toggle">
+          <span className={!isDeliveryBoyMode ? 'active' : ''}>Customer</span>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={isDeliveryBoyMode}
+              onChange={(e) => setIsDeliveryBoyMode(e.target.checked)}
+            />
+            <span className="toggle-slider"></span>
+          </label>
+          <span className={isDeliveryBoyMode ? 'active' : ''}>Delivery Boy</span>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">

@@ -86,14 +86,14 @@ const Sidebar = ({ onStateChange, isMobileOpen = false, onMobileClose }) => {
       path: '/shop',
       label: 'Shop',
       icon: <FiShoppingBag />,
-      roles: ['customer', 'admin', 'mediator', 'delivery_boy'],
+      roles: ['customer', 'admin', 'mediator'],
       show: isAuthenticated
     },
     {
       path: '/cart',
       label: 'Cart',
       icon: <FiShoppingCart />,
-      roles: ['customer', 'admin', 'mediator', 'delivery_boy'],
+      roles: ['customer', 'admin', 'mediator'],
       show: isAuthenticated,
       badge: cartCount
     },
@@ -101,7 +101,7 @@ const Sidebar = ({ onStateChange, isMobileOpen = false, onMobileClose }) => {
       path: '/subscriptions',
       label: 'My Subscription',
       icon: <FiStar />,
-      roles: ['customer', 'admin', 'mediator', 'delivery_boy'],
+      roles: ['customer', 'admin', 'mediator'],
       show: isAuthenticated
     },
     {
@@ -115,14 +115,14 @@ const Sidebar = ({ onStateChange, isMobileOpen = false, onMobileClose }) => {
       path: '/payment-history',
       label: 'Payment History',
       icon: <FiCreditCard />,
-      roles: ['customer', 'admin', 'mediator', 'delivery_boy'],
+      roles: ['customer', 'admin', 'mediator'],
       show: isAuthenticated
     },
     {
       path: '/franchise',
       label: 'Franchise',
       icon: <FiUsers />,
-      roles: ['customer', 'admin', 'mediator', 'delivery_boy'],
+      roles: ['customer', 'admin', 'mediator'],
       show: isAuthenticated
     },
     {
@@ -250,8 +250,15 @@ const Sidebar = ({ onStateChange, isMobileOpen = false, onMobileClose }) => {
       <div className="sidebar-content">
         <div className="menu-section">
           <div className="menu-section-header">
-            <span className="section-title">MAIN MENU</span>
-            <span className="section-toggle">⚙</span>
+            <span className="section-title">
+              {user?.role === 'delivery_boy' ? 'DELIVERY BOY' : 'MAIN MENU'}
+            </span>
+            {user?.role === 'delivery_boy' && (
+              <span className="delivery-badge">Delivery</span>
+            )}
+            {user?.role !== 'delivery_boy' && (
+              <span className="section-toggle">⚙</span>
+            )}
           </div>
           <nav className="menu-nav">
             {uniqueMainMenuItems.map((item) => (

@@ -218,6 +218,25 @@
   overflow: hidden;
 }
 
+.delivery-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  transition: opacity 0.3s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.sidebar.collapsed .delivery-badge {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
 .menu-nav {
   display: flex;
   flex-direction: column;
