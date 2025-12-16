@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/axios';
 import { toast } from 'react-toastify';
+import { useModal } from '../../context/ModalContext';
 import './QuestionsManagement.css';
 
 const QuestionsManagement = () => {
+  const { showConfirm } = useModal();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -189,7 +191,15 @@ const QuestionsManagement = () => {
   };
 
   const handleDelete = async (questionId) => {
-    if (!window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
+    const confirmed = await showConfirm({
+      title: 'Delete Question',
+      message: 'Are you sure you want to delete this question? This action cannot be undone.',
+      type: 'danger',
+      confirmText: 'Yes, Delete',
+      cancelText: 'Cancel'
+    });
+
+    if (!confirmed) {
       return;
     }
 

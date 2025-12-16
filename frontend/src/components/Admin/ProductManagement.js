@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/axios';
 import { toast } from 'react-toastify';
+import { useModal } from '../../context/ModalContext';
 import './ProductManagement.css';
 
 const ProductManagement = () => {
+  const { showConfirm } = useModal();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -115,7 +117,15 @@ const ProductManagement = () => {
   };
 
   const handleDelete = async (productId) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) {
+    const confirmed = await showConfirm({
+      title: 'Delete Product',
+      message: 'Are you sure you want to delete this product? This action cannot be undone.',
+      type: 'danger',
+      confirmText: 'Yes, Delete',
+      cancelText: 'Cancel'
+    });
+
+    if (!confirmed) {
       return;
     }
 

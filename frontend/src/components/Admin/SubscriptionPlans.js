@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/axios';
 import { toast } from 'react-toastify';
+import { useModal } from '../../context/ModalContext';
 import './SubscriptionPlans.css';
 
 const SubscriptionPlans = () => {
+  const { showConfirm } = useModal();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -141,7 +143,15 @@ const SubscriptionPlans = () => {
   };
 
   const handleDelete = async (planId) => {
-    if (!window.confirm('Are you sure you want to delete this subscription plan? This action cannot be undone.')) {
+    const confirmed = await showConfirm({
+      title: 'Delete Subscription Plan',
+      message: 'Are you sure you want to delete this subscription plan? This action cannot be undone.',
+      type: 'danger',
+      confirmText: 'Yes, Delete',
+      cancelText: 'Cancel'
+    });
+
+    if (!confirmed) {
       return;
     }
 

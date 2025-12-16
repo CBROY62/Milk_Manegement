@@ -1,14 +1,56 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+const server = http.createServer(app);
 
 // Middleware
-app.use(cors());
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Socket.io setup
+const io = new Server(server, {
+  cors: corsOptions,
+  pingTimeout: 60000
+});
+
+// Socket.io authentication middleware
+const jwt = require('jsonwebtoken');
+const User = require('./models/User');
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      return next(new Error('Authentication error: No token provided'));
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (!user || !user.isActive) {
+      return next(new Error('Authentication error: Invalid or inactive user'));
+    }
+
+    socket.userId = user._id.toString();
+    socket.userRole = user.role;
+    socket.user = user;
+    next();
+  } catch (error) {
+    next(new Error('Authentication error: ' + error.message));
+  }
+});
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://bhushand620:bhushand620@milk.9obgflc.mongodb.net/Milk_Management?appName=Milk';
@@ -212,15 +254,72 @@ app.get('/api/registrations', async (req, res) => {
   }
 });
 
+// Socket.io connection handler
+io.on('connection', (socket) => {
+  console.log(`✅ User connected: ${socket.userId} (${socket.userRole})`);
+
+  // Join user-specific room
+  socket.join(`user:${socket.userId}`);
+
+  // Join role-specific rooms
+  if (socket.userRole === 'admin') {
+    socket.join('admin');
+  }
+  if (socket.userRole === 'delivery_boy') {
+    socket.join(`delivery:${socket.userId}`);
+    socket.join('delivery');
+  }
+
+  // Handle joining order room
+  socket.on('track_order', (orderId) => {
+    socket.join(`order:${orderId}`);
+    console.log(`User ${socket.userId} tracking order ${orderId}`);
+  });
+
+  // Handle leaving order room
+  socket.on('untrack_order', (orderId) => {
+    socket.leave(`order:${orderId}`);
+  });
+
+  // Handle delivery location updates
+  socket.on('update_location', (data) => {
+    if (socket.userRole === 'delivery_boy') {
+      // Broadcast location to admin and order room
+      io.to('admin').emit('delivery_location_update', {
+        deliveryBoyId: socket.userId,
+        orderId: data.orderId,
+        location: data.location,
+        timestamp: new Date()
+      });
+      if (data.orderId) {
+        io.to(`order:${data.orderId}`).emit('delivery_location_update', {
+          deliveryBoyId: socket.userId,
+          location: data.location,
+          timestamp: new Date()
+        });
+      }
+    }
+  });
+
+  // Handle disconnection
+  socket.on('disconnect', () => {
+    console.log(`❌ User disconnected: ${socket.userId}`);
+  });
+});
+
+// Make io available to routes
+app.set('io', io);
+
 // Start server after database connection
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
     await connectDB();
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`🚀 Server is running on port ${PORT}`);
       console.log(`📍 API endpoint: http://localhost:${PORT}/api/register`);
+      console.log(`🔌 Socket.io server ready`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

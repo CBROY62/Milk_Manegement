@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../utils/axios';
 import { toast } from 'react-toastify';
+import { useSocket } from '../context/SocketContext';
+import { useModal } from '../context/ModalContext';
 import './OrderTracking.css';
 
 const OrderTracking = () => {
   const { id } = useParams();
+  const { socket, isConnected, trackOrder, untrackOrder } = useSocket();
+  const { showConfirm } = useModal();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
@@ -14,6 +18,98 @@ const OrderTracking = () => {
   useEffect(() => {
     fetchOrder();
   }, [id]);
+
+  // Real-time order tracking with Socket.io
+  useEffect(() => {
+    if (!socket || !isConnected || !id) return;
+
+    // Track this order for real-time updates
+    trackOrder(id);
+
+    // Listen for order status updates
+    const handleOrderStatusUpdate = (data) => {
+      if (data.orderId === id) {
+        console.log('Order status update received:', data);
+        // Update order status
+        setOrder(prevOrder => {
+          if (prevOrder) {
+            return {
+              ...prevOrder,
+              status: data.status,
+              deliveryBoy: data.deliveryBoy || prevOrder.deliveryBoy,
+              updatedAt: data.updatedAt
+            };
+          }
+          return prevOrder;
+        });
+
+        // Show toast notification
+        const statusMessages = {
+          'pending': 'Order is pending',
+          'confirmed': 'Order confirmed',
+          'processing': 'Order is being processed',
+          'out_for_delivery': 'Order is out for delivery',
+          'delivered': 'Order delivered successfully!',
+          'cancelled': 'Order cancelled'
+        };
+        
+        if (statusMessages[data.status]) {
+          toast.info(statusMessages[data.status], {
+            autoClose: 3000
+          });
+        }
+      }
+    };
+
+    // Listen for order cancellation
+    const handleOrderCancelled = (data) => {
+      if (data.orderId === id) {
+        console.log('Order cancelled:', data);
+        setOrder(prevOrder => {
+          if (prevOrder) {
+            return {
+              ...prevOrder,
+              status: 'cancelled'
+            };
+          }
+          return prevOrder;
+        });
+        toast.warning('Order has been cancelled', {
+          autoClose: 3000
+        });
+      }
+    };
+
+    // Listen for delivery updates
+    const handleDeliveryUpdate = (data) => {
+      if (data.orderId === id) {
+        console.log('Delivery update received:', data);
+        setOrder(prevOrder => {
+          if (prevOrder) {
+            return {
+              ...prevOrder,
+              status: data.status,
+              deliveryBoy: data.deliveryBoy || prevOrder.deliveryBoy,
+              deliveryAddress: data.deliveryAddress || prevOrder.deliveryAddress
+            };
+          }
+          return prevOrder;
+        });
+      }
+    };
+
+    socket.on('order_status_update', handleOrderStatusUpdate);
+    socket.on('order_cancelled', handleOrderCancelled);
+    socket.on('delivery_update', handleDeliveryUpdate);
+
+    // Cleanup
+    return () => {
+      untrackOrder(id);
+      socket.off('order_status_update', handleOrderStatusUpdate);
+      socket.off('order_cancelled', handleOrderCancelled);
+      socket.off('delivery_update', handleDeliveryUpdate);
+    };
+  }, [socket, isConnected, id, trackOrder, untrackOrder]);
 
   const fetchOrder = async () => {
     try {
@@ -31,7 +127,15 @@ const OrderTracking = () => {
   };
 
   const handleCancelOrder = async () => {
-    if (!window.confirm('Are you sure you want to cancel this order?')) {
+    const confirmed = await showConfirm({
+      title: 'Cancel Order',
+      message: 'Are you sure you want to cancel this order?',
+      type: 'warning',
+      confirmText: 'Yes, Cancel Order',
+      cancelText: 'No, Keep Order'
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -51,7 +155,15 @@ const OrderTracking = () => {
   };
 
   const handleCancelItem = async (itemId) => {
-    if (!window.confirm('Are you sure you want to cancel this item?')) {
+    const confirmed = await showConfirm({
+      title: 'Cancel Item',
+      message: 'Are you sure you want to cancel this item?',
+      type: 'warning',
+      confirmText: 'Yes, Cancel Item',
+      cancelText: 'No, Keep Item'
+    });
+
+    if (!confirmed) {
       return;
     }
 

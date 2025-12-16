@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../utils/axios';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import { FiPackage, FiClock, FiCheckCircle, FiDollarSign, FiTruck, FiRefreshCw, FiAlertCircle } from 'react-icons/fi';
 import DeliveryOrderTracking from './DeliveryOrderTracking';
 import '../Admin/Dashboard.css';
@@ -9,6 +10,7 @@ import './DeliveryDashboard.css';
 
 const DeliveryDashboard = () => {
   const { user } = useAuth();
+  const { socket, isConnected } = useSocket();
   const [orders, setOrders] = useState([]);
   const [availableOrders, setAvailableOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,15 +21,110 @@ const DeliveryDashboard = () => {
   useEffect(() => {
     fetchOrders();
     fetchAvailableOrders();
-    
-    // Auto-refresh every 15 seconds
-    const interval = setInterval(() => {
-      fetchOrders(true);
-      fetchAvailableOrders(true);
-    }, 15000);
-
-    return () => clearInterval(interval);
   }, []);
+
+  // Real-time updates with Socket.io
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    // Listen for new orders available for delivery
+    const handleNewOrder = (orderData) => {
+      console.log('New order available:', orderData);
+      // Check if order is not already assigned
+      if (!orderData.deliveryBoy) {
+        setAvailableOrders(prev => {
+          // Check if order already exists
+          const exists = prev.find(o => o._id === orderData.orderId);
+          if (!exists) {
+            toast.info(`New order #${orderData.orderNumber} available for delivery!`, {
+              autoClose: 3000
+            });
+            return [...prev, {
+              _id: orderData.orderId,
+              orderNumber: orderData.orderNumber,
+              total: orderData.total,
+              user: orderData.user,
+              deliveryType: orderData.deliveryType,
+              deliveryAddress: orderData.deliveryAddress,
+              createdAt: orderData.createdAt,
+              status: orderData.status
+            }];
+          }
+          return prev;
+        });
+      }
+    };
+
+    // Listen for order assignment
+    const handleOrderAssigned = (data) => {
+      console.log('Order assigned to me:', data);
+      if (data.deliveryBoyId === user?._id) {
+        toast.success(`Order #${data.orderNumber} assigned to you!`, {
+          autoClose: 3000
+        });
+        // Remove from available orders
+        setAvailableOrders(prev => prev.filter(o => o._id !== data.orderId));
+        // Refresh assigned orders
+        fetchOrders(true);
+      }
+    };
+
+    // Listen for order status updates
+    const handleOrderStatusUpdate = (data) => {
+      console.log('Order status update:', data);
+      // Update in assigned orders
+      setOrders(prev => prev.map(order => {
+        if (order._id === data.orderId) {
+          return {
+            ...order,
+            status: data.status,
+            deliveryBoy: data.deliveryBoy || order.deliveryBoy,
+            updatedAt: data.updatedAt
+          };
+        }
+        return order;
+      }));
+
+      // Update in available orders if status changed
+      setAvailableOrders(prev => prev.map(order => {
+        if (order._id === data.orderId) {
+          return {
+            ...order,
+            status: data.status
+          };
+        }
+        return order;
+      }));
+    };
+
+    // Listen for delivery updates
+    const handleDeliveryUpdate = (data) => {
+      console.log('Delivery update:', data);
+      setOrders(prev => prev.map(order => {
+        if (order._id === data.orderId) {
+          return {
+            ...order,
+            status: data.status,
+            deliveryBoy: data.deliveryBoy || order.deliveryBoy
+          };
+        }
+        return order;
+      }));
+    };
+
+    socket.on('new_order', handleNewOrder);
+    socket.on('order_assigned', handleOrderAssigned);
+    socket.on('order_status_update', handleOrderStatusUpdate);
+    socket.on('delivery_update', handleDeliveryUpdate);
+
+    // Cleanup
+    return () => {
+      socket.off('new_order', handleNewOrder);
+      socket.off('order_assigned', handleOrderAssigned);
+      socket.off('order_status_update', handleOrderStatusUpdate);
+      socket.off('delivery_update', handleDeliveryUpdate);
+    };
+  }, [socket, isConnected, user]);
 
   const fetchOrders = async (silent = false) => {
     try {

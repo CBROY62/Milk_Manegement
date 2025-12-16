@@ -3,8 +3,15 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'sk_test_your_
 const Payment = require('../models/Payment');
 const Order = require('../models/Order');
 const { authenticate } = require('../middleware/auth');
+const { emitPaymentNotification } = require('../socketHandlers/notificationHandlers');
+const { emitOrderStatusUpdate } = require('../socketHandlers/orderHandlers');
 
 const router = express.Router();
+
+// Helper to get io instance
+const getIO = (req) => {
+  return req.app.get('io');
+};
 
 // Create payment intent
 router.post('/create-intent', authenticate, async (req, res) => {
@@ -62,13 +69,33 @@ router.post('/confirm', authenticate, async (req, res) => {
           transactionId: paymentIntent.id
         },
         { new: true }
-      );
+      ).populate('user', 'name email');
 
       // Update order status
+      let order = null;
       if (orderId) {
+        const oldOrder = await Order.findById(orderId).populate('user', 'name email phone').populate('deliveryBoy', 'name phone');
         await Order.findByIdAndUpdate(orderId, {
           status: 'confirmed'
         });
+        order = await Order.findById(orderId)
+          .populate('items.product')
+          .populate('user', 'name email phone')
+          .populate('deliveryBoy', 'name phone');
+      }
+
+      // Emit Socket.io events
+      const io = getIO(req);
+      if (io) {
+        // Emit payment notification
+        if (payment && payment.user) {
+          emitPaymentNotification(io, payment.user._id.toString(), payment);
+        }
+        
+        // Emit order status update
+        if (order) {
+          emitOrderStatusUpdate(io, order, 'pending');
+        }
       }
 
       res.json({

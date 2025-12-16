@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import api from '../../utils/axios';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+import { useModal } from '../../context/ModalContext';
 import './UserManagement.css';
 
 const UserManagement = () => {
   const { user: currentUser } = useAuth();
+  const { showConfirm } = useModal();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -172,7 +174,15 @@ const UserManagement = () => {
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to permanently delete user "${userToDelete.name}"? This action cannot be undone.`)) {
+    const confirmed = await showConfirm({
+      title: 'Delete User',
+      message: `Are you sure you want to permanently delete user "${userToDelete.name}"? This action cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Yes, Delete',
+      cancelText: 'Cancel'
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -199,7 +209,15 @@ const UserManagement = () => {
 
     const isCurrentlyActive = user.isActive !== false;
     const action = isCurrentlyActive ? 'deactivate' : 'activate';
-    if (!window.confirm(`Are you sure you want to ${action} user "${user.name}"?`)) {
+    const confirmed = await showConfirm({
+      title: `${action.charAt(0).toUpperCase() + action.slice(1)} User`,
+      message: `Are you sure you want to ${action} user "${user.name}"?`,
+      type: 'warning',
+      confirmText: `Yes, ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+      cancelText: 'Cancel'
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -267,7 +285,15 @@ const UserManagement = () => {
     }
 
     const actionText = action === 'activate' ? 'activate' : action === 'deactivate' ? 'deactivate' : 'delete';
-    if (!window.confirm(`Are you sure you want to ${actionText} ${selectedUsers.length} user(s)?`)) {
+    const confirmed = await showConfirm({
+      title: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Users`,
+      message: `Are you sure you want to ${actionText} ${selectedUsers.length} user(s)?`,
+      type: action === 'delete' ? 'danger' : 'warning',
+      confirmText: `Yes, ${actionText.charAt(0).toUpperCase() + actionText.slice(1)}`,
+      cancelText: 'Cancel'
+    });
+
+    if (!confirmed) {
       return;
     }
 

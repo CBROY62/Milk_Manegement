@@ -4,6 +4,8 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { SocketProvider } from './context/SocketContext';
+import { ModalProvider } from './context/ModalContext';
 import ProtectedRoute from './components/Layout/ProtectedRoute';
 import Navbar from './components/Layout/Navbar';
 import Footer from './components/Layout/Footer';
@@ -47,8 +49,10 @@ import './App.css';
 function App() {
   return (
     <AuthProvider>
-      <CartProvider>
-        <Router>
+      <SocketProvider>
+        <ModalProvider>
+          <CartProvider>
+            <Router>
         <div className="App">
           <Navbar />
           <main className="main-content">
@@ -104,6 +108,8 @@ function App() {
         </div>
       </Router>
       </CartProvider>
+      </ModalProvider>
+      </SocketProvider>
     </AuthProvider>
   );
 }

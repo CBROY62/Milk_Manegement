@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/axios';
 import { toast } from 'react-toastify';
+import { useModal } from '../../context/ModalContext';
 import './SubscriptionManagement.css';
 
 const SubscriptionManagement = () => {
+  const { showConfirm } = useModal();
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,7 +64,15 @@ const SubscriptionManagement = () => {
   };
 
   const handleCancel = async (subscriptionId) => {
-    if (!window.confirm('Are you sure you want to cancel this subscription?')) {
+    const confirmed = await showConfirm({
+      title: 'Cancel Subscription',
+      message: 'Are you sure you want to cancel this subscription?',
+      type: 'warning',
+      confirmText: 'Yes, Cancel',
+      cancelText: 'No, Keep'
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -118,7 +128,15 @@ const SubscriptionManagement = () => {
     }
 
     const actionText = action === 'cancel' ? 'cancel' : action === 'activate' ? 'activate' : 'pause';
-    if (!window.confirm(`Are you sure you want to ${actionText} ${selectedSubscriptions.length} subscription(s)?`)) {
+    const confirmed = await showConfirm({
+      title: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Subscriptions`,
+      message: `Are you sure you want to ${actionText} ${selectedSubscriptions.length} subscription(s)?`,
+      type: action === 'cancel' ? 'warning' : 'info',
+      confirmText: `Yes, ${actionText.charAt(0).toUpperCase() + actionText.slice(1)}`,
+      cancelText: 'Cancel'
+    });
+
+    if (!confirmed) {
       return;
     }
 

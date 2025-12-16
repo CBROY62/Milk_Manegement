@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../utils/axios';
 import { toast } from 'react-toastify';
+import { useSocket } from '../../context/SocketContext';
 import './Dashboard.css';
 
 const AdminDashboard = () => {
+  const { socket, isConnected } = useSocket();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalOrders: 0,
@@ -20,6 +22,128 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  // Real-time updates with Socket.io
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    // Listen for admin stats updates
+    const handleAdminStatsUpdate = (statsData) => {
+      console.log('Admin stats update received:', statsData);
+      setStats(prev => ({
+        ...prev,
+        totalOrders: statsData.totalOrders || prev.totalOrders,
+        pendingOrders: statsData.pendingOrders || prev.pendingOrders,
+        completedOrders: statsData.completedOrders || prev.completedOrders,
+        totalRevenue: statsData.totalRevenue || prev.totalRevenue,
+        todayRevenue: statsData.todayRevenue || prev.todayRevenue,
+        totalUsers: statsData.totalUsers || prev.totalUsers,
+        activeSubscriptions: statsData.activeSubscriptions || prev.activeSubscriptions,
+        lowStockProducts: statsData.lowStockProducts || prev.lowStockProducts
+      }));
+    };
+
+    // Listen for new orders
+    const handleNewOrder = (orderData) => {
+      console.log('New order received:', orderData);
+      setStats(prev => ({
+        ...prev,
+        totalOrders: prev.totalOrders + 1,
+        pendingOrders: orderData.status === 'pending' ? prev.pendingOrders + 1 : prev.pendingOrders,
+        totalRevenue: prev.totalRevenue + (orderData.total || 0)
+      }));
+
+      // Add to recent orders
+      setRecentOrders(prev => {
+        const newOrder = {
+          _id: orderData.orderId,
+          orderNumber: orderData.orderNumber,
+          user: orderData.user,
+          total: orderData.total,
+          status: orderData.status,
+          createdAt: orderData.createdAt
+        };
+        return [newOrder, ...prev].slice(0, 5);
+      });
+
+      toast.info(`New order #${orderData.orderNumber} received!`, {
+        autoClose: 3000
+      });
+    };
+
+    // Listen for order status updates
+    const handleOrderStatusUpdate = (data) => {
+      console.log('Order status update:', data);
+      
+      // Update recent orders
+      setRecentOrders(prev => prev.map(order => {
+        if (order._id === data.orderId) {
+          return {
+            ...order,
+            status: data.status,
+            updatedAt: data.updatedAt
+          };
+        }
+        return order;
+      }));
+
+      // Update stats based on status change
+      if (data.oldStatus === 'pending' && data.status !== 'pending') {
+        setStats(prev => ({
+          ...prev,
+          pendingOrders: Math.max(0, prev.pendingOrders - 1)
+        }));
+      } else if (data.status === 'pending' && data.oldStatus !== 'pending') {
+        setStats(prev => ({
+          ...prev,
+          pendingOrders: prev.pendingOrders + 1
+        }));
+      }
+
+      if (data.status === 'delivered' && data.oldStatus !== 'delivered') {
+        setStats(prev => ({
+          ...prev,
+          completedOrders: (prev.completedOrders || 0) + 1
+        }));
+      }
+    };
+
+    // Listen for inventory updates
+    const handleInventoryUpdate = (data) => {
+      console.log('Inventory update:', data);
+      if (data.isLowStock) {
+        toast.warning(`Low stock alert: ${data.productName} (${data.stock} remaining)`, {
+          autoClose: 5000
+        });
+      }
+    };
+
+    // Listen for system alerts
+    const handleSystemAlert = (alert) => {
+      console.log('System alert:', alert);
+      toast[alert.type === 'error' ? 'error' : alert.type === 'warning' ? 'warning' : 'info'](
+        alert.message,
+        {
+          autoClose: 5000
+        }
+      );
+    };
+
+    socket.on('admin_stats_update', handleAdminStatsUpdate);
+    socket.on('new_order', handleNewOrder);
+    socket.on('order_status_update', handleOrderStatusUpdate);
+    socket.on('inventory_update', handleInventoryUpdate);
+    socket.on('system_alert', handleSystemAlert);
+
+    // Cleanup
+    return () => {
+      socket.off('admin_stats_update', handleAdminStatsUpdate);
+      socket.off('new_order', handleNewOrder);
+      socket.off('order_status_update', handleOrderStatusUpdate);
+      socket.off('inventory_update', handleInventoryUpdate);
+      socket.off('system_alert', handleSystemAlert);
+    };
+  }, [socket, isConnected]);
 
   const fetchDashboardData = async () => {
     try {

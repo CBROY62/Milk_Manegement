@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/axios';
 import { toast } from 'react-toastify';
+import { useModal } from '../context/ModalContext';
 import './Subscriptions.css';
 
 const Subscriptions = () => {
+  const { showConfirm } = useModal();
   const [plans, setPlans] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [products, setProducts] = useState([]);
@@ -55,7 +57,15 @@ const Subscriptions = () => {
   };
 
   const handleCancel = async (subscriptionId) => {
-    if (!window.confirm('Are you sure you want to cancel this subscription?')) {
+    const confirmed = await showConfirm({
+      title: 'Cancel Subscription',
+      message: 'Are you sure you want to cancel this subscription?',
+      type: 'warning',
+      confirmText: 'Yes, Cancel',
+      cancelText: 'No, Keep'
+    });
+
+    if (!confirmed) {
       return;
     }
 

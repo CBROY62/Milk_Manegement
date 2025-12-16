@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/axios';
 import { toast } from 'react-toastify';
+import { useModal } from '../context/ModalContext';
 import './Orders.css';
 
 const Orders = () => {
+  const { showConfirm } = useModal();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(null);
@@ -30,7 +32,15 @@ const Orders = () => {
   };
 
   const handleDeleteOrder = async (orderId) => {
-    if (!window.confirm('Are you sure you want to delete this cancelled order? This action cannot be undone.')) {
+    const confirmed = await showConfirm({
+      title: 'Delete Order',
+      message: 'Are you sure you want to delete this cancelled order? This action cannot be undone.',
+      type: 'danger',
+      confirmText: 'Yes, Delete',
+      cancelText: 'Cancel'
+    });
+
+    if (!confirmed) {
       return;
     }
 

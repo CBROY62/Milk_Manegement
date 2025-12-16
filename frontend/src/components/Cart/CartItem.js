@@ -1,9 +1,11 @@
 import React from 'react';
 import { useCart } from '../../context/CartContext';
+import { useModal } from '../../context/ModalContext';
 import './Cart.css';
 
 const CartItem = ({ item }) => {
   const { updateQuantity, removeFromCart } = useCart();
+  const { showConfirm } = useModal();
   
   if (!item || !item.product) {
     return null;
@@ -24,8 +26,18 @@ const CartItem = ({ item }) => {
     }
   };
 
-  const handleRemove = () => {
-    if (window.confirm('Remove this item from cart?') && productId) {
+  const handleRemove = async () => {
+    if (!productId) return;
+    
+    const confirmed = await showConfirm({
+      title: 'Remove Item',
+      message: 'Remove this item from cart?',
+      type: 'warning',
+      confirmText: 'Yes, Remove',
+      cancelText: 'Cancel'
+    });
+
+    if (confirmed) {
       removeFromCart(productId);
     }
   };

@@ -6,8 +6,16 @@ const Payment = require('../models/Payment');
 const Subscription = require('../models/Subscription');
 const { authenticate } = require('../middleware/auth');
 const { checkRole } = require('../middleware/roleCheck');
+const { emitNewOrder, emitOrderStatusUpdate, emitOrderCancellation } = require('../socketHandlers/orderHandlers');
+const { emitDeliveryAssignment } = require('../socketHandlers/deliveryHandlers');
+const { emitNotification } = require('../socketHandlers/notificationHandlers');
 
 const router = express.Router();
+
+// Helper to get io instance
+const getIO = (req) => {
+  return req.app.get('io');
+};
 
 // Create order from cart
 router.post('/create', authenticate, async (req, res) => {
@@ -156,11 +164,30 @@ router.post('/create', authenticate, async (req, res) => {
     cart.items = [];
     await cart.save();
 
+    // Populate order for Socket.io emit
+    const populatedOrder = await Order.findById(order._id)
+      .populate('items.product')
+      .populate('user', 'name email phone');
+
+    // Emit new order event via Socket.io
+    const io = getIO(req);
+    if (io) {
+      emitNewOrder(io, populatedOrder);
+      
+      // Send notification to user
+      emitNotification(io, req.user._id.toString(), {
+        type: 'success',
+        title: 'Order Placed Successfully',
+        message: `Your order #${order.orderNumber} has been placed successfully!`,
+        data: { orderId: order._id.toString() }
+      });
+    }
+
     res.status(201).json({
       success: true,
       message: 'Order created successfully',
       data: {
-        order: await Order.findById(order._id).populate('items.product'),
+        order: populatedOrder,
         payment: payment
       }
     });
@@ -282,6 +309,7 @@ router.put('/:id/take', authenticate, checkRole('delivery_boy'), async (req, res
     }
 
     // Assign order to delivery boy and update status
+    const oldStatus = order.status;
     order.deliveryBoy = req.user._id;
     if (order.status === 'pending' || order.status === 'confirmed') {
       order.status = 'processing';
@@ -292,6 +320,13 @@ router.put('/:id/take', authenticate, checkRole('delivery_boy'), async (req, res
       .populate('user', 'name email phone')
       .populate('items.product')
       .populate('deliveryBoy', 'name phone');
+
+    // Emit Socket.io events
+    const io = getIO(req);
+    if (io) {
+      emitDeliveryAssignment(io, populatedOrder, req.user._id.toString());
+      emitOrderStatusUpdate(io, populatedOrder, oldStatus);
+    }
 
     res.json({
       success: true,
@@ -379,17 +414,32 @@ router.put('/:id/status', authenticate, checkRole('admin', 'mediator', 'delivery
       });
     }
 
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    ).populate('items.product');
-
-    if (!order) {
+    const oldOrder = await Order.findById(req.params.id).populate('user', 'name email phone').populate('deliveryBoy', 'name phone');
+    
+    if (!oldOrder) {
       return res.status(404).json({
         success: false,
         message: 'Order not found'
       });
+    }
+
+    const oldStatus = oldOrder.status;
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    ).populate('items.product').populate('user', 'name email phone').populate('deliveryBoy', 'name phone');
+
+    // Emit Socket.io events
+    const io = getIO(req);
+    if (io) {
+      emitOrderStatusUpdate(io, order, oldStatus);
+      
+      // Emit delivery update if status changed
+      if (['processing', 'out_for_delivery', 'delivered'].includes(status)) {
+        const { emitDeliveryStatusUpdate } = require('../socketHandlers/deliveryHandlers');
+        emitDeliveryStatusUpdate(io, order);
+      }
     }
 
     res.json({
@@ -415,13 +465,20 @@ router.put('/:id/assign-delivery', authenticate, checkRole('admin', 'mediator'),
       req.params.id,
       { deliveryBoy: deliveryBoyId },
       { new: true }
-    ).populate('items.product').populate('deliveryBoy', 'name phone');
+    ).populate('items.product').populate('user', 'name email phone').populate('deliveryBoy', 'name phone');
 
     if (!order) {
       return res.status(404).json({
         success: false,
         message: 'Order not found'
       });
+    }
+
+    // Emit Socket.io events
+    const io = getIO(req);
+    if (io) {
+      emitDeliveryAssignment(io, order, deliveryBoyId);
+      emitOrderStatusUpdate(io, order);
     }
 
     res.json({
@@ -481,6 +538,7 @@ router.put('/:id/cancel', authenticate, async (req, res) => {
     }
 
     // Update order status
+    const oldStatus = order.status;
     order.status = 'cancelled';
     await order.save();
 
@@ -491,10 +549,22 @@ router.put('/:id/cancel', authenticate, async (req, res) => {
       });
     }
 
+    const populatedOrder = await Order.findById(order._id)
+      .populate('items.product')
+      .populate('user', 'name email phone')
+      .populate('deliveryBoy', 'name phone');
+
+    // Emit Socket.io events
+    const io = getIO(req);
+    if (io) {
+      emitOrderCancellation(io, populatedOrder);
+      emitOrderStatusUpdate(io, populatedOrder, oldStatus);
+    }
+
     res.json({
       success: true,
       message: 'Order cancelled successfully',
-      data: await Order.findById(order._id).populate('items.product')
+      data: populatedOrder
     });
   } catch (error) {
     res.status(500).json({
