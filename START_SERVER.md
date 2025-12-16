@@ -29,7 +29,7 @@
 
 ### Step 2: Start the Frontend (in a NEW terminal)
 
-1. Open a **NEW** terminal/command prompt window
+1. Open a **NEW** terminal/command prompt  window
 2. Navigate to the frontend folder:
    ```bash
    cd frontend

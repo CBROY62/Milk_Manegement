@@ -3,7 +3,7 @@
  */
 
 /**
- * Emit notification to specific user
+  * Emit notification to specific user
  * @param {Object} io - Socket.io server instance
  * @param {String} userId - User ID to send notification to
  * @param {Object} notification - Notification object
